@@ -89,3 +89,43 @@ credit is owed in the interface. That is separate from MIT's own requirement tha
 travel with the code, which is why the text sits at `components/vendor/opensourceui/LICENSE` and in
 `NOTICE`. Both statements are true at once and neither replaces the other.
 
+
+## Which components we pull, and which we skip
+
+Recorded so the build does not re-decide this surface by surface. The catalog is 170 components and
+most of it is consumer decoration, so the useful subset is small and worth naming.
+
+| Our surface | From the kit |
+| --- | --- |
+| The facet rail on every shelf | all of `inputs/`, especially `search-input`, `combobox-field-input`, `select-field-input`, `switch-field-input`, `checkbox-field-input`, `radio-group-field-input` |
+| Compare, plus a buyer's job history | `table/orders-table`, `table/recent-transactions-table` |
+| Job state, settlement, dispute | `notifications/payment-notification-banner`, `deploy-notification-banner`, `system-alert-banner`, `toast-notification-banner` |
+| Every address and agentId on screen | `buttons/copy-button` |
+| The hire confirmation | `buttons/slide-to-confirm-button`. A deliberate gesture before a signature is right for a payment |
+| The settlement receipt | `others/thermal-receipt-card` |
+| A job transcript or probe output | `others/terminal-log-card` |
+| The evidence-ladder rung | `others/progress-ring-card` |
+| Shelf and view switching | `buttons/segmented-toggle-button` |
+| Delisting, in the operator console | `buttons/hold-to-delete-button` |
+| The landing hero, once and only once | one of the eight `dark-*` entries in `background-gradient/` |
+| The operator console forms | `forms/` as structure only, since all five are auth flows we do not have |
+
+**Left alone deliberately.** All 27 `widgets/` (analog clock, heart rate, hydration, sleep score, step
+count, compass, earbuds, torch), all 10 `text/` editorial cards (cinema ticket, magazine cover, cafe
+menu, journal), the 18 light entries in `background-gradient/`, `wallet/wallet-pass-card`, plus the
+novelty buttons (`cinder-latch`, `prism-depth`, `sheen-pill`, `three-d`, `linen-tab`). An Apple Watch
+face or a cinema ticket on a financial marketplace reads as a template, which is the opposite of what
+we want in front of these judges.
+
+**One tension inside the kit, resolved.** It ships 26 background gradients while its own design
+reference says to avoid gradients, glow and coloured blur. The reading that makes both true is that a
+gradient belongs in a hero or a demo, never in chrome. So: one, on the landing page, with flat surfaces
+everywhere else.
+
+**Why this matters less than it looks.** The published rubric scores Functionality as "someone with
+zero Agent Studio knowledge should be able to get through it without hitting a dead end" and Data
+Quality as being able to "make a genuinely informed call on which agent to hire". Both are legibility
+and density rather than beauty. The kit's real contribution is that forty surfaces read as one product
+with interaction states, focus behaviour and contrast already settled. That is what a judge reads as
+quality. It contributes nothing agent-aware, market-aware or chain-aware, so every surface that
+differentiates Muster is ours to build in its idiom.
