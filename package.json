@@ -20,10 +20,12 @@
     "cli": "node --experimental-strip-types cli/muster.ts"
   },
   "dependencies": {
+    "clsx": "2.1.1",
     "lucide-react": "0.544.0",
     "next": "16.3.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "tailwind-merge": "3.3.1",
     "viem": "2.56.3"
   },
   "devDependencies": {

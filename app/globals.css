@@ -1,36 +1,95 @@
 @import "tailwindcss";
 
 /*
- * BNB Chain publishes exactly three colours and no semantic tokens. The three below are
- * theirs, read from their brand guidelines: yellow #F0B90B (Pantone 116C), near-black
- * #0B0E11, white. Third-party palettes quoting #FCD535 or #F3BA2F do not match the
- * published value and were rejected.
+ * Two systems reconciled on purpose, because they disagree.
  *
- * Everything under "ours" is ours, not theirs. A marketplace showing health factors and
- * yields needs an up-and-down pair and state colours, and BNB Chain publishes none, so we
- * define them and say so. See docs/decisions/16-ui-kit-and-binance-palette.md.
+ * Opensource UI (MIT, Copyright (c) 2026 Bidyut Kundu) is light-first. Its own design
+ * reference specifies white or near-white surfaces, neutral borders and dark ink, with
+ * rose and cyan accents. BNB Chain's published brand is the opposite: near-black canvas
+ * #0B0E11 with yellow #F0B90B.
+ *
+ * We keep the kit's STRUCTURE and drop its COLOUR. Structure kept: flat surfaces, no
+ * gradients, no glow, no glassmorphism, no stacked shadows, border-based focus with
+ * ring-0 rather than a coloured ring, the radius scale, p-4 as the common padding, md:
+ * as the only breakpoint. Colour replaced: BNB Chain's three published values plus a
+ * semantic set that is ours.
+ *
+ * The kit permits this. Its code becomes ours on paste and its own guide treats the
+ * colour block as a token map. Recorded in docs/decisions/16-ui-kit-and-binance-palette.md.
  */
+
 @theme {
+  /* BNB Chain's published three. Nothing else here is theirs. */
   --color-brand: #F0B90B;
   --color-canvas: #0B0E11;
   --color-paper: #FFFFFF;
 
-  /* ours */
+  /* Ours: the surface and ink scale, dark because the brand canvas is dark. */
   --color-panel: #15191E;
+  --color-panel-2: #1B2027;
   --color-line: #252B33;
+  --color-line-soft: #1C2128;
   --color-ink: #E9EDF2;
+  --color-ink-soft: #B9C2CE;
   --color-ink-dim: #8B97A6;
+  --color-ink-faint: #5A6472;
+
+  /* Ours: semantics. BNB Chain publishes none, and a marketplace showing health
+     factors and yields needs them. */
   --color-up: #1FA97A;
   --color-down: #E4574C;
+  --color-warn: #E8A33D;
   --color-unknown: #5A6472;
 
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* The kit's radius and spacing scale, kept verbatim. */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+
+  --font-display: "Instrument Serif", ui-serif, Georgia, serif;
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-html { color-scheme: dark; }
-body { background: var(--color-canvas); color: var(--color-ink); }
+html {
+  color-scheme: dark;
+}
 
-/* A field whose value we do not know renders as unknown, never as zero. That rule is the
-   Data Quality criterion in one line, so it lives in the stylesheet as well as the docs. */
-.unknown { color: var(--color-unknown); font-style: normal; }
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * A field whose value we do not know renders as unknown, never as zero and never as a
+ * dash that reads like zero. That is the Data Quality criterion in one rule, so it lives
+ * in the stylesheet as well as in docs/03-TAXONOMY.md.
+ */
+.unknown {
+  color: var(--color-unknown);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Every number a buyer compares is tabular, so columns line up and a change in one
+   digit does not shift the row. */
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Border-based focus, per the kit. Never a coloured ring. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -41,3 +41,51 @@ would change that, but only after they clear it.
 
 **Rejected:** shadcn/ui, which the operator did not pick and which would need the same palette work
 anyway. Building components from scratch, which spends hours on buttons that a judge does not score.
+
+## Addendum, 2026-09-05: what the kit actually is, after reading it
+
+The first version of this record was written from the repository's metadata and its licence. Reading the
+kit itself changes three things, so they are recorded rather than discovered again later.
+
+**It is copy-paste, not a dependency.** Its own words: "No install, no lock-in". The shipped agent
+guide says "There is no package installation step for the UI library itself." So there is no
+`opensourceui` entry in `package.json` and there never will be. What it does need is `cn()` from
+`lib/cn.ts`, which pulls `clsx` and `tailwind-merge`. Both are now pinned dependencies and `lib/cn.ts`
+carries a comment naming its origin.
+
+**It ships its own agent skill**, at `skills/opensource-ui/` in the repository: a `SKILL.md` plus a
+catalog, a design reference, an implementation guide and a source inventory. That is vendored into
+`.claude/skills/opensource-ui/` so the build follows the kit's own rules instead of our guesses about
+them. `.claude/` is gitignored, because it is build tooling rather than product.
+
+**Its design language contradicts the brief. The reconciliation is deliberate.** The kit is
+light-first: "Keep site chrome neutral: white or near-white surfaces, neutral borders, dark ink", with
+rose and cyan accents. BNB Chain's canvas is near-black. Those cannot both be followed literally.
+
+So we keep the kit's **structure** and replace its **colour**:
+
+| Kept from the kit | Replaced |
+| --- | --- |
+| Flat surfaces. No gradients, no glow, no coloured blur, no glassmorphism, no stacked shadows | The whole colour scale, which becomes BNB Chain's three published values plus our semantics |
+| Border-based focus with `ring-0`, never a coloured ring | Light surfaces, since the brand canvas is `#0B0E11` |
+| The radius scale of 6px, 8px and 16px, plus `p-4` as common padding | The rose and cyan accent pair |
+| `md:` as the only breakpoint, never `sm:` | |
+| `forwardRef`, native prop extension, `cn()` for class merging | |
+| Native semantics, keyboard support, visible error text, WCAG AA contrast | |
+| Instrument Serif for display, Geist for UI, Geist Mono for figures | |
+
+Mono for figures is worth more here than it looks. A buyer compares APYs and health factors down a
+column, so tabular numerals stop a row shifting when one digit changes.
+
+**What the kit does not give us, stated so nobody expects it.** There is no web3 component: `wallet/`
+holds a single `wallet-pass-card.tsx`, which is a boarding-pass style card rather than a connect-wallet
+control. Nothing in the catalog is agent-aware, market-aware or chain-aware. The genuinely useful stock
+for a marketplace is `table/` (six tables), `inputs/` (fourteen), `buttons/` (twenty-two),
+`notifications/` (ten) and `forms/` (five). Every marketplace-specific surface, the shelf, the compare
+view, the evidence ladder, the hire panel, is ours to build in the kit's idiom.
+
+**One correction to the earlier wording.** The kit says "No UI attribution required", so no visible
+credit is owed in the interface. That is separate from MIT's own requirement that the licence notice
+travel with the code, which is why the text sits at `components/vendor/opensourceui/LICENSE` and in
+`NOTICE`. Both statements are true at once and neither replaces the other.
+

@@ -28,3 +28,4 @@ dist/
 # Render outputs
 DEMO-*.mp4
 upload-*/
+.claude/
