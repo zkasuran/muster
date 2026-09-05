@@ -1,0 +1,40 @@
+# Muster's own Caddy site blocks, and only these two.
+#
+# The origin currently also serves another workload whose blocks are deliberately not
+# reproduced here: another owner's hostnames and ports are not ours to publish. Append
+# these two blocks to whatever Caddyfile the host already has, then
+# `caddy validate` and `caddy reload`, never `systemctl restart`, so the other sites
+# on the box do not drop.
+
+muster.zkasuran.dev {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "DENY"
+		-Server
+	}
+
+	# Two upstreams, tried in order. The app first. If it is down, the static export
+	# answers at the same paths with a real 200, because a submitted URL that returns
+	# 502 during judging is a broken link even when a browser renders the body.
+	reverse_proxy 127.0.0.1:3000 127.0.0.1:3001 {
+		lb_policy first
+		fail_duration 10s
+		max_fails 1
+		lb_try_duration 5s
+	}
+
+	log {
+		output file /var/log/caddy/muster.log
+		format json
+	}
+}
+
+# The static fallback, served by caddy itself so there is no extra dependency.
+http://127.0.0.1:3001 {
+	root * /var/www/muster-static
+	try_files {path} {path}/index.html /index.html
+	file_server
+}

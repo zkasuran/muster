@@ -1,0 +1,24 @@
+[Unit]
+Description=Muster web (Next.js)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/muster
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=HOSTNAME=127.0.0.1
+ExecStart=/usr/bin/node /opt/muster/server.js
+Restart=always
+RestartSec=2
+StateDirectory=muster
+ReadWritePaths=/var/lib/muster
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

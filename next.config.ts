@@ -4,6 +4,7 @@ import type { NextConfig } from 'next'
 // scripting off, which docs/03-TAXONOMY.md settles as the mobile decision, so nothing
 // on the render path may depend on client hydration.
 const config: NextConfig = {
+  output: 'standalone',
   reactStrictMode: true,
   poweredByHeader: false,
   outputFileTracingIncludes: { '/**': ['./lib/**/*'] },
