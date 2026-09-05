@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+/*
+ * BNB Chain publishes exactly three colours and no semantic tokens. The three below are
+ * theirs, read from their brand guidelines: yellow #F0B90B (Pantone 116C), near-black
+ * #0B0E11, white. Third-party palettes quoting #FCD535 or #F3BA2F do not match the
+ * published value and were rejected.
+ *
+ * Everything under "ours" is ours, not theirs. A marketplace showing health factors and
+ * yields needs an up-and-down pair and state colours, and BNB Chain publishes none, so we
+ * define them and say so. See docs/decisions/16-ui-kit-and-binance-palette.md.
+ */
+@theme {
+  --color-brand: #F0B90B;
+  --color-canvas: #0B0E11;
+  --color-paper: #FFFFFF;
+
+  /* ours */
+  --color-panel: #15191E;
+  --color-line: #252B33;
+  --color-ink: #E9EDF2;
+  --color-ink-dim: #8B97A6;
+  --color-up: #1FA97A;
+  --color-down: #E4574C;
+  --color-unknown: #5A6472;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+html { color-scheme: dark; }
+body { background: var(--color-canvas); color: var(--color-ink); }
+
+/* A field whose value we do not know renders as unknown, never as zero. That rule is the
+   Data Quality criterion in one line, so it lives in the stylesheet as well as the docs. */
+.unknown { color: var(--color-unknown); font-style: normal; }

@@ -1,0 +1,38 @@
+{
+  "name": "muster",
+  "version": "0.1.0",
+  "private": true,
+  "license": "LicenseRef-zkasuran-SAND-1.0",
+  "description": "Find, compare and hire a live ERC-8004 agent on BNB Smart Chain",
+  "engines": { "node": ">=22.6.0" },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test worker/**/*.test.ts lib/**/*.test.ts",
+    "check": "npm run typecheck && npm run lint && npm run test",
+    "sweep": "node --experimental-strip-types worker/sweep.ts",
+    "probe": "node --experimental-strip-types worker/probe.ts",
+    "cli": "node --experimental-strip-types cli/muster.ts"
+  },
+  "dependencies": {
+    "next": "15.5.2",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "viem": "2.37.5",
+    "lucide-react": "0.544.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.18.1",
+    "@types/react": "19.1.12",
+    "@types/react-dom": "19.1.9",
+    "typescript": "5.9.2",
+    "tailwindcss": "4.1.13",
+    "@tailwindcss/postcss": "4.1.13",
+    "postcss": "8.5.6",
+    "eslint": "9.35.0",
+    "eslint-config-next": "15.5.2"
+  }
+}

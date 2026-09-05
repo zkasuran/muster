@@ -1,0 +1,30 @@
+# Private working material. Never published.
+/submit/
+/.hq/
+/archive/
+
+# Primary captures. Kept on disk as the evidence every number traces to, never
+# republished: 404 files including third-party page captures and six PDFs whose
+# terms do not grant redistribution.
+/docs/research/raw/
+
+# Build output and dependencies
+node_modules/
+.next/
+out/
+dist/
+*.tsbuildinfo
+
+# Local state
+.env
+.env.*
+!.env.example
+*.log
+/data/
+*.db
+*.db-wal
+*.db-shm
+
+# Render outputs
+DEMO-*.mp4
+upload-*/
