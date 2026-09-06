@@ -77,6 +77,14 @@ export async function syncBazaar(): Promise<{
       promoted += Number(res.changes)
     }
 
+    db().prepare('DELETE FROM bazaarPayout').run()
+    const insPay = db().prepare(
+      'INSERT INTO bazaarPayout (payTo, resourceCount, sampleResource, observedAt) VALUES (?,?,?,?)',
+    )
+    for (const [payTo, list] of idx.byPayTo) {
+      insPay.run(payTo, list.length, list[0]?.resource ?? null, now)
+    }
+
     db()
       .prepare(
         `INSERT INTO sourceState (source, lastOkAt, reportedCount, observedAt)

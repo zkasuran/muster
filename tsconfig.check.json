@@ -1,0 +1,8 @@
+{
+  // Next.js rewrites tsconfig.json on every build and drops entries from `exclude`, so the
+  // typecheck gate gets its own config that Next does not own. `tools/` holds throwaway gate
+  // scripts that are run directly with node, and an in-progress scratch file there must never
+  // be able to block a deploy of the product.
+  "extends": "./tsconfig.json",
+  "exclude": ["node_modules", "archive", "docs", "submit", "tools", ".next"]
+}

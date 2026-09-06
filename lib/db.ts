@@ -139,6 +139,15 @@ CREATE TABLE IF NOT EXISTS sourceState (
   observedAt    INTEGER
 );
 
+-- The B402 Bazaar payout addresses, so the intersection with the registry is a join rather
+-- than a derived guess. Small: measured at 8 rows on 2026-09-06.
+CREATE TABLE IF NOT EXISTS bazaarPayout (
+  payTo         TEXT PRIMARY KEY,
+  resourceCount INTEGER NOT NULL,
+  sampleResource TEXT,
+  observedAt    INTEGER NOT NULL
+);
+
 -- Key/value for sweep resume points and boot assertions. Small on purpose.
 CREATE TABLE IF NOT EXISTS meta (
   k TEXT PRIMARY KEY,

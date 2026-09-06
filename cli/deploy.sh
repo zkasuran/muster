@@ -14,6 +14,8 @@ REMOTE_DIR="${MUSTER_REMOTE_DIR:-/opt/muster}"
 cd "$(dirname "$0")/.."
 
 echo "==> check"
+# The real type gate, against tsconfig.check.json. next build's own check is disabled in
+# next.config.ts because Next rewrites tsconfig.json and cannot exclude scratch scripts.
 npm run typecheck
 echo "==> build"
 npx next build

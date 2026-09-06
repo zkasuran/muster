@@ -150,6 +150,67 @@ export function shelfSummaries(): ShelfSummary[] {
   })
 }
 
+/**
+ * The population facts, measured over the whole registry rather than a sample. These are the
+ * numbers the thesis rests on, so they are read from the index at render time instead of being
+ * written into copy where they could go stale.
+ */
+export interface PopulationFacts {
+  agentsIndexed: number
+  parsedRecords: number
+  withHttpEndpoint: number
+  declaresX402: number
+  walletDistinctFromOwner: number
+  inDuplicateCluster: number
+  distinctOwners: number
+  largestCluster: { name: string | null; size: number } | null
+  bazaarResources: number | null
+  bazaarPayoutAddresses: number | null
+  bazaarLargestShare: number | null
+  /** Agents holding both an ERC-8004 identity and a Bazaar payout address. */
+  intersection: number
+}
+
+export function populationFacts(): PopulationFacts {
+  const c = (sql: string, ...a: unknown[]) => one<{ c: number }>(sql, ...a)?.c ?? 0
+  const meta = (k: string): number | null => {
+    const r = one<{ v: string }>('SELECT v FROM meta WHERE k = ?', k)
+    return r ? Number(r.v) : null
+  }
+  const largest = one<{ n: string | null; c: number }>(
+    `SELECT coalesce(name, '(unnamed)') n, COUNT(*) c FROM agent
+     WHERE chainId = ? AND duplicateClusterId IS NOT NULL
+     GROUP BY duplicateClusterId ORDER BY c DESC LIMIT 1`,
+    CHAIN_ID,
+  )
+  return {
+    agentsIndexed: c('SELECT COUNT(*) c FROM agent WHERE chainId = ?', CHAIN_ID),
+    parsedRecords: c('SELECT COUNT(*) c FROM agent WHERE chainId = ? AND registrationParsed = 1', CHAIN_ID),
+    withHttpEndpoint: c("SELECT COUNT(*) c FROM agent WHERE chainId = ? AND endpoints != '[]'", CHAIN_ID),
+    declaresX402: c('SELECT COUNT(*) c FROM agent WHERE chainId = ? AND declaresX402 = 1', CHAIN_ID),
+    walletDistinctFromOwner: c(
+      'SELECT COUNT(*) c FROM agent WHERE chainId = ? AND agentWallet IS NOT NULL AND agentWallet != owner',
+      CHAIN_ID,
+    ),
+    inDuplicateCluster: c('SELECT COUNT(*) c FROM agent WHERE chainId = ? AND duplicateClusterId IS NOT NULL', CHAIN_ID),
+    distinctOwners: c('SELECT COUNT(DISTINCT owner) c FROM agent WHERE chainId = ?', CHAIN_ID),
+    largestCluster: largest ? { name: largest.n, size: largest.c } : null,
+    bazaarResources: meta('bazaar.resources'),
+    bazaarPayoutAddresses: meta('bazaar.distinctPayTo'),
+    bazaarLargestShare: meta('bazaar.largestPublisherShare'),
+    // A join against the payout set Bazaar actually publishes, not against listings we
+    // happened to promote. The two differ: the one agent in the intersection has an empty
+    // registration record, so it matches no shelf contract and holds no listing.
+    intersection: c(
+      `SELECT COUNT(*) c FROM agent a
+       WHERE a.chainId = ?
+         AND (lower(a.owner) IN (SELECT payTo FROM bazaarPayout)
+              OR lower(a.agentWallet) IN (SELECT payTo FROM bazaarPayout))`,
+      CHAIN_ID,
+    ),
+  }
+}
+
 export interface ListingCard {
   listingId: string
   agentId: string
