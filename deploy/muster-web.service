@@ -6,6 +6,8 @@ Wants=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=/opt/muster
+# Holds MUSTER_PAYTO and MUSTER_ORIGIN_URL. Mode 600, never in the repo.
+EnvironmentFile=-/etc/muster.env
 Environment=NODE_ENV=production
 Environment=PORT=3000
 Environment=HOSTNAME=127.0.0.1
