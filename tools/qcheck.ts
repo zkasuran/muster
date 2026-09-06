@@ -1,0 +1,10 @@
+import { indexHealth, shelfSummaries, rungCounts, shelfListings, agentDetail, searchListings } from '../lib/queries.ts'
+console.log('  indexHealth :', JSON.stringify(indexHealth()))
+console.log('  rungCounts  :', JSON.stringify(rungCounts()))
+console.log('  shelves     :')
+for (const s of shelfSummaries()) console.log('    ', JSON.stringify(s))
+console.log('  yield listings:', shelfListings('yield', 3).map(l => `${l.agentId}/${l.name}/${l.evidenceTier}`).join(' | ') || '(none)')
+const d = agentDetail('1')
+console.log('  agentDetail(1):', d ? `${d.name} rung=${d.evidenceTier} endpoints=${d.endpoints.length} x402=${d.declaresX402} cats=${d.categories.join(',')}` : 'null')
+console.log('  search "agent":', searchListings('agent', 3).length, 'hits')
+console.log('  search "999999":', searchListings('999999', 3).length, 'hits (must be 0 or a real id)')

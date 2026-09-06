@@ -94,6 +94,11 @@ export async function sweep(): Promise<{
   const runId = randomUUID()
   const startedAt = Date.now()
   const { count, block } = await readAgentCount()
+  // Published immediately, not at the end. A sweep takes an hour and the landing page must
+  // not show the chain count as unknown for that hour.
+  setMeta('chain.agentCount', String(count))
+  setMeta('chain.atBlock', String(block))
+  setMeta('chain.readAt', String(Date.now()))
 
   const resumeFrom = Number(getMeta(RESUME_KEY) ?? '0')
   const from = resumeFrom >= count ? 0 : resumeFrom
