@@ -27,6 +27,11 @@ cp -a .next/standalone/. "$STAGE/"
 mkdir -p "$STAGE/.next/static"
 cp -a .next/static/. "$STAGE/.next/static/"
 [ -d public ] && cp -a public "$STAGE/"
+# The one document the app reads at request time. Rendered by /report, produced by
+# tools/advantage-report.ts against the live chain, never hand edited.
+if [ -f docs/research/agent-advantage-report.json ]; then
+  mkdir -p "$STAGE/docs/research" && cp docs/research/agent-advantage-report.json "$STAGE/docs/research/"
+fi
 echo "    $(du -sh "$STAGE" | cut -f1)"
 
 echo "==> ship"

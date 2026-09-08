@@ -19,6 +19,9 @@ export function Nav() {
           <Link href="/compare" className="text-ink-soft hover:text-brand">
             Compare
           </Link>
+          <Link href="/report" className="text-ink-dim hover:text-brand">
+            Report
+          </Link>
           <Link href="/status" className="text-ink-dim hover:text-brand">
             Status
           </Link>

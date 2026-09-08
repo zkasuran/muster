@@ -30,3 +30,4 @@ DEMO-*.mp4
 upload-*/
 .claude/
 lib/__gate/
+/CONTENT-*.html
