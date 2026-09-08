@@ -384,3 +384,57 @@ export function probeHistory(listingId: string, limit = 10) {
     limit,
   )
 }
+
+/**
+ * Compare: two to four listings side by side. The ids come from the query string, so they are
+ * validated as decimal strings here and never interpolated. Order is preserved, because a buyer
+ * who put an agent first wants it in the first column.
+ */
+export function listingsForCompare(ids: string[]): ListingCard[] {
+  const clean = [...new Set(ids.filter((s) => /^(0|[1-9][0-9]*)$/.test(s)))].slice(0, 4)
+  if (clean.length === 0) return []
+  const placeholders = clean.map(() => '?').join(',')
+  const rows = many<ListingCard>(
+    `${CARD_SELECT}
+     WHERE l.chainId = ? AND l.agentId IN (${placeholders})
+     GROUP BY l.agentId`,
+    CHAIN_ID,
+    ...clean,
+  )
+  const byId = new Map(rows.map((r) => [r.agentId, r]))
+  return clean.map((id) => byId.get(id)).filter((r): r is ListingCard => r !== undefined)
+}
+
+/** Latest probe per listing, for the compare grid. */
+export function latestProbes(listingIds: string[]): Map<string, { verdict: string; httpStatus: number | null; sawPaymentRequired: number; latencyMs: number | null; observedAt: number; failureClass: string | null }> {
+  const out = new Map<string, { verdict: string; httpStatus: number | null; sawPaymentRequired: number; latencyMs: number | null; observedAt: number; failureClass: string | null }>()
+  for (const id of listingIds) {
+    const r = one<{ verdict: string; httpStatus: number | null; sawPaymentRequired: number; latencyMs: number | null; observedAt: number; failureClass: string | null }>(
+      'SELECT verdict, httpStatus, sawPaymentRequired, latencyMs, observedAt, failureClass FROM probeResult WHERE listingId = ? ORDER BY observedAt DESC LIMIT 1',
+      id,
+    )
+    if (r) out.set(id, r)
+  }
+  return out
+}
+
+/** Probe summary for the status page: what the last cycle actually did. */
+export function probeSummary(): {
+  total: number
+  listingsProbed: number
+  verdicts: Record<string, number>
+  failureClasses: { failureClass: string; c: number }[]
+  lastObservedAt: number | null
+  sawPaymentRequired: number
+} {
+  const total = one<{ c: number }>('SELECT COUNT(*) c FROM probeResult')?.c ?? 0
+  const listingsProbed = one<{ c: number }>('SELECT COUNT(DISTINCT listingId) c FROM probeResult')?.c ?? 0
+  const verdicts: Record<string, number> = {}
+  for (const r of many<{ verdict: string; c: number }>('SELECT verdict, COUNT(*) c FROM probeResult GROUP BY verdict')) verdicts[r.verdict] = r.c
+  const failureClasses = many<{ failureClass: string; c: number }>(
+    "SELECT failureClass, COUNT(*) c FROM probeResult WHERE verdict = 'fail' AND failureClass IS NOT NULL GROUP BY failureClass ORDER BY c DESC LIMIT 10",
+  )
+  const last = one<{ m: number | null }>('SELECT MAX(observedAt) m FROM probeResult')
+  const paid = one<{ c: number }>('SELECT COUNT(DISTINCT listingId) c FROM probeResult WHERE sawPaymentRequired = 1')?.c ?? 0
+  return { total, listingsProbed, verdicts, failureClasses, lastObservedAt: last?.m ?? null, sawPaymentRequired: paid }
+}

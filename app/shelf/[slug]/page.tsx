@@ -26,6 +26,9 @@ export default async function ShelfPage({ params }: { params: Promise<{ slug: st
   const contract = contractFor(shelf)
   const listings = shelfListings(shelf, 60)
   const rungs = rungCounts(shelf)
+  // Our own reference agent on this shelf, if any, so every third-party row can offer a one
+  // click comparison against a row whose behaviour we can vouch for.
+  const ours = listings.find((l) => l.firstParty === 1)?.agentId
 
   return (
     <>
@@ -89,7 +92,7 @@ export default async function ShelfPage({ params }: { params: Promise<{ slug: st
         ) : (
           <ul className="mt-6 grid gap-3 md:grid-cols-2">
             {listings.map((l) => (
-              <ListingRow key={l.listingId} l={l} />
+              <ListingRow key={l.listingId} l={l} compareWith={ours} />
             ))}
           </ul>
         )}

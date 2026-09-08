@@ -17,7 +17,7 @@ function priceLabel(l: ListingCard): string | null {
 /**
  * One row on a shelf. Every field a buyer needs to choose, and nothing it cannot support.
  */
-export function ListingRow({ l }: { l: ListingCard }) {
+export function ListingRow({ l, compareWith }: { l: ListingCard; compareWith?: string }) {
   const price = priceLabel(l)
   return (
     <li className="rounded-lg border border-line bg-panel p-4">
@@ -77,7 +77,15 @@ export function ListingRow({ l }: { l: ListingCard }) {
         </div>
       </dl>
 
-      <div className="mt-3 flex flex-wrap gap-2 text-xs">
+      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+        {compareWith && compareWith !== l.agentId && (
+          <Link
+            href={`/compare?ids=${l.agentId},${compareWith}`}
+            className="rounded-sm border border-line px-2 py-0.5 text-ink-soft hover:border-brand hover:text-brand"
+          >
+            compare with ours
+          </Link>
+        )}
         {l.inBazaar === 1 && (
           <span className="rounded-sm border border-brand/40 px-2 py-0.5 text-brand">
             in B402 Bazaar

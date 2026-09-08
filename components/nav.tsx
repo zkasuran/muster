@@ -16,6 +16,9 @@ export function Nav() {
               {SHELF_TITLES[s]}
             </Link>
           ))}
+          <Link href="/compare" className="text-ink-soft hover:text-brand">
+            Compare
+          </Link>
           <Link href="/status" className="text-ink-dim hover:text-brand">
             Status
           </Link>

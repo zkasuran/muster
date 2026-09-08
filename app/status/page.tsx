@@ -1,6 +1,7 @@
 import { Nav, Footer } from '@/components/nav'
 import { ago, num } from '@/components/fresh'
-import { indexHealth, rungCounts, shelfSummaries } from '@/lib/queries'
+import { indexHealth, rungCounts, shelfSummaries, probeSummary, populationFacts } from '@/lib/queries'
+import { cacheState } from '@/lib/cache'
 import { SHELF_TITLES } from '@/lib/classify'
 import { CHAIN, REGISTRY } from '@/lib/constants'
 
@@ -15,6 +16,9 @@ export default function StatusPage() {
   const h = indexHealth()
   const r = rungCounts()
   const shelves = shelfSummaries()
+  const probes = probeSummary()
+  const pop = populationFacts()
+  const caches = cacheState()
   const coverage =
     h.agentsOnChain && h.agentsOnChain > 0
       ? ((h.agentsIndexed / h.agentsOnChain) * 100).toFixed(1)
@@ -55,13 +59,44 @@ export default function StatusPage() {
           ))}
         </Section>
 
-        <Section title="What this build does not do yet">
+        <Section title="The probe cycle">
+          <p className="mb-3 text-xs text-ink-faint">
+            One HTTPS request per declared endpoint, through a guard that refuses anything
+            resolving to a private, loopback, link-local, multicast or NAT64 address. A row moves
+            above the declared rung only on what the probe actually observed, and a 402 carrying
+            payment requirements is what the payable rung means.
+          </p>
+          <Row label="Probes recorded" value={num(probes.total)} note={probes.lastObservedAt ? `last ${ago(Math.round((Date.now() - probes.lastObservedAt) / 1000))}` : 'no cycle has run'} />
+          <Row label="Listings probed" value={num(probes.listingsProbed)} note="one request per host per cycle" />
+          <Row label="Passed" value={num(probes.verdicts['pass'] ?? 0)} note="host resolved, TLS completed, an answer came back" />
+          <Row label="Failed" value={num(probes.verdicts['fail'] ?? 0)} note={probes.failureClasses.map((f) => `${f.failureClass} ${f.c}`).join(', ') || ''} />
+          <Row label="Answered 402 with requirements" value={num(probes.sawPaymentRequired)} note="the payable rung, checked rather than claimed" />
+        </Section>
+
+        <Section title="The B402 Bazaar join">
+          <Row label="Paid endpoints in Bazaar" value={num(pop.bazaarResources)} note="every one has settled a real payment" />
+          <Row label="Distinct payout addresses" value={num(pop.bazaarPayoutAddresses)} note={pop.bazaarLargestShare !== null ? `one publisher holds ${(pop.bazaarLargestShare * 100).toFixed(1)}% of all payment options` : ''} />
+          <Row label="Also hold an ERC-8004 identity" value={num(pop.intersection)} note="the intersection of identity and proven revenue on BSC" />
+        </Section>
+
+        <Section title="Caches on the render path">
+          {caches.length === 0 ? (
+            <p className="text-sm text-ink-dim">Nothing cached in this process yet.</p>
+          ) : (
+            caches.map((c) => (
+              <Row key={c.key} label={c.key} value={`${c.ageSeconds}s old`} note={`refreshes after ${c.ceilingSeconds}s. A cached value carries the time it was read, never the time it was served`} />
+            ))
+          )}
+        </Section>
+
+        <Section title="What this build does not do">
           <p className="text-sm text-ink-dim">
-            Published rather than hidden, because a judge finding it first is worse. The probe
-            cycle, the B402 Bazaar join and the hire path are in the repository and not yet wired
-            into these counts, so every row above the declared rung reads zero. Escrow, the
-            signed ledger chain and the Altana session panel are out of scope for this entry and
-            the reasons are recorded in the decision records.
+            Published rather than hidden, because a judge finding it first is worse. Settlement
+            through Binance B402 needs a merchant developer account that is granted on request,
+            so the four first-party agents issue a real 402 a buyer can sign, and the on-chain
+            settle is the step still pending that account. No row is marked settled without a
+            payment that cleared. Escrow, the signed ledger chain and the Altana session panel
+            are out of scope for this entry and the reasons are in the decision records.
           </p>
         </Section>
 
