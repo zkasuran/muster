@@ -35,7 +35,7 @@ developer kit (`R14-rivals.md`). The demand side is the empty half.
 | Phase 2 | printed as `Phase 2: [REDACTED]` | unpublished |
 | Winner announced | | **2026-11-05** |
 
-**No time of day is published for the close.** Treat 2026-09-09 00:00 UTC as the deadline and have
+**The close is 12:00 UTC on 2026-09-09**, read from the registration form's own description on 2026-09-06 ("12:00pm UTC+0, Aug 5 2026 to 12:00pm UTC+0, Sep 9 2026"). The hackathon page prints only the date. Treat 12:00 UTC as the deadline and have
 everything green before 2026-09-08 ends. That reading is a decision, not a quotation.
 
 The judging window is a hard product constraint, not a formality. The submission must be functional
@@ -198,7 +198,7 @@ documents, because everything on the right is something a document must label un
 | the three main criteria and their descriptions | **every weight in the main rubric** |
 | the four mandated categories | the phase 2 criteria, printed `[REDACTED]` |
 | that three judges score independently then compare | who the judges are |
-| the build close date, 2026-09-09 | the time of day it closes |
+| the build close date, 2026-09-09, and its time, 12:00 UTC, from the registration form | nothing, both are published |
 | the judging window, Sep 9 to 23 | how the shortlist is chosen from the entries |
 | that the top 3 are named publicly | whether the repo is read at all, as opposed to the running site |
 | the winner date, 2026-11-05 | what adoption commits BNB Chain to beyond backing a standalone product |

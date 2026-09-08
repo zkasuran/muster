@@ -591,7 +591,7 @@ against, so keep it easy to search: every entry is a claim a document might reac
 | Whether phase 2 reweights the partner tracks | unverified. The TermiX table carries no such line | same |
 | Whether judges read the repo at all | unverified. All three criteria are properties of the running site | nothing published says either way |
 | The total number of entries | unverified. One entry per team, a Google Form, no public roster. 206 public rival repos is a floor on public builds only | the shortlist, published after judging opens |
-| The time of day the build closes on 2026-09-09 | **unverified.** Only the date is published | treat 00:00 UTC as the deadline |
+| The time of day the build closes on 2026-09-09 | **verified 2026-09-06: 12:00 UTC**, from the registration form's description | keep 00:00 UTC as the freeze, 12:00 UTC is the wall |
 | How the 50,000 Altana XP is allocated | unverified. Their own page says "allocation mechanics to be confirmed" | Altana publishing it |
 | Whether Altana XP needs the wallet declared anywhere | unverified. The XP page looks fully derived from chain | put every wallet in the submission anyway, which the programme separately requires |
 | Where the Agent Advantage Report is filed | unverified. No channel is named on either page | ship it as a public URL inside the submission and as a file in the repo |

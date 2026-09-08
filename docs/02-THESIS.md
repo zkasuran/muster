@@ -655,7 +655,7 @@ is BSC-specific down to the token decimals, so breadth here would cost depth in 
 
 ## 12. What ships by 2026-09-09 and what is documented as next
 
-No time of day is published for the close, so the working deadline is 2026-09-09 00:00 UTC with everything
+The close is 2026-09-09 12:00 UTC, read from the registration form on 2026-09-06, so the working freeze is 00:00 UTC that day with everything
 green before 2026-09-08 ends. That reading is a decision recorded in `00-PROGRAM.md`, not a quotation.
 `15-SYSTEM.md` owns the build order, the hour-by-hour cut line and the test plan. This section owns the
 line between what the submission claims and what it defers.

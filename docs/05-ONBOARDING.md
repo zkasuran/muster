@@ -1480,8 +1480,8 @@ missed probe puts a row inside the window with no second chance.
    under our own control would settle it and would also need its own licence position.
 8. **Whether Binance Web3 Wallet connects on the first attempt.** Its injection path and connector package are
    unverified. It is treated as a plain EIP-1193 provider until a real connection is observed.
-9. **The time of day the build closes on 2026-09-09.** Unverified, only the date is published, so this
-   document assumes 00:00 UTC per SPINE. Every ship-line item above is timed against that assumption.
+9. **The time of day the build closes on 2026-09-09.** Verified on 2026-09-06 as 12:00 UTC from the
+   registration form. This document's ship line assumes a 00:00 UTC freeze, which now carries twelve hours of margin.
 10. **Whether one address holding 99.0% of ERC-8183 jobs is one operator or a platform router.** Unverified in
     `R16-reuse.md` and it matters here because the 25% per-payer cap in section 10.2 treats a router's clients
     as one payer. If it is a router, the cap under-counts a legitimate provider. What would settle it is

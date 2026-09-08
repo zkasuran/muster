@@ -1,7 +1,7 @@
 # 15-SYSTEM: the build, the boxes, the deployment and the four days
 
-Written 2026-09-05. Build closes 2026-09-09 UTC+0. The date is published. The time of day is
-**unverified**, so 00:00 UTC is the assumption the whole plan is built to and everything is green
+Written 2026-09-05. Build closes 2026-09-09 at **12:00 UTC**, read from the registration form's own
+description on 2026-09-06. The plan below was built to 00:00 UTC before that read, which leaves twelve hours of margin, and everything is green
 before 2026-09-08 ends (`00-PROGRAM.md`, the unverified list in `research/SPINE.md`).
 
 ## What this settles
@@ -1195,7 +1195,7 @@ and what a red run gets, because "no alerting" is only honest when the manual ro
 ## 9. The build order, blocked by hour
 
 Three working days plus a freeze. The window is 2026-09-06 00:00 UTC to 2026-09-08 23:59 UTC. The close is
-2026-09-09 UTC+0 with the time of day **unverified**, so 00:00 UTC on the 9th is the deadline the plan is
+2026-09-09 12:00 UTC, read from the registration form. 00:00 UTC on the 9th stays the freeze the plan is
 built to (`SPINE.md`). Blocks are wall clock in UTC and each names its gate. Nothing moves to the next block
 until its gate passes, because a half-built surface later is worse than a missing one now.
 
