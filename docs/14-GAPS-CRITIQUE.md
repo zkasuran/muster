@@ -10,6 +10,10 @@ was taken from the set's own records.
 
 ## 1. Nobody opened the submission channel and it is a registration form
 
+**Resolved 2026-09-06 and 2026-09-08.** The registration was filed, the repository exists as
+`zkasuran/muster`, and README.md was rewritten as the submission carrier with the live URL, the
+report and the four agent wallets. The finding below is kept as written.
+
 **Missing.** The one link the plan files through was never read. Fetched live on 2026-09-06,
 `https://forms.gle/9g9XPNFwnYaHAz9L8` is titled "Build the Era Hackathon Registration". It carries 23
 items and asks for prototype stage as "Fresh idea", "Early prototype" or "Working MVP", mentorship
@@ -38,6 +42,9 @@ page with one copy button per field, kept outside the repository.
 
 ## 2. The public hostname belongs to a rival
 
+**Fixed 2026-09-05.** The site runs at `muster.zkasuran.dev`, a hostname the operator controls,
+with a certificate to 2026-12-04. The finding below is kept as written.
+
 **Missing.** A hostname we control. `15-SYSTEM.md` section 6.2 cites `muster.brainonbnb.com` as "a
 subdomain of a domain we already control" and its open question calls that apex "proven" because it
 already serves a well-known file over HTTPS. Both lines rest on `R12-agent-comms.md`. This set's own
@@ -59,6 +66,9 @@ too: "one Linux machine we already operate" is the only description of it anywhe
 host that has to answer through fourteen unattended days is **unverified**.
 
 ## 3. The close time is published and six documents say it is not
+
+**Fixed 2026-09-08.** All six references now carry 12:00 UTC with the source and the date it was
+read. The finding below is kept as written, as the record of what the set said before.
 
 **Missing.** A read of the form's own description, which states the build period as "12:00pm UTC+0, Aug
 5 2026 – 12:00pm UTC+0, Sep 9 2026" with judging "Sep 9, 2026 – Sep 23, 2026". Six places in the set
@@ -123,6 +133,8 @@ listings. If it is zero, surface the measured BABT-holding owners as candidate r
 state rendered and labelled unclaimed, so the rung has at least one live instance on screen.
 
 ## 7. The README contradicts the measurement it introduces
+
+**Fixed 2026-09-08.** Both READMEs now carry the full-registry numbers. The finding is kept as written.
 
 **Missing.** A first page that agrees with the folder behind it. `three/README.md` still carries the
 2026-08-27 pass: 287,029 agents, 2 of 400 publishing a callable endpoint, 166 of 400 sharing one name, 0
