@@ -24,7 +24,7 @@ if 'unknown' in t and 'Registered on chain unknown' in t: f('major', '/', 'chain
 depth = {}
 for sh in ['rebalancing', 'grid-trading', 'yield', 'health-factor']:
     s, h = get(f'/shelf/{sh}'); t = text(h)
-    m = re.search(r'([0-9,]+) shown', t); depth[sh] = int(m.group(1).replace(',', '')) if m else None
+    m = re.search(r'([0-9,]+) match', t); depth[sh] = int(m.group(1).replace(',', '')) if m else None
     if s != 200: f('blocker', f'/shelf/{sh}', f'HTTP {s}', 'Agent Diversity', 'shelf must load')
     if 'Inputs it must accept' not in t: f('major', f'/shelf/{sh}', 'contract block missing', 'Functionality', 'render contract')
     if 'ours' not in t: f('major', f'/shelf/{sh}', 'no first-party row labelled ours', 'Agent Diversity', 'seed first-party row')

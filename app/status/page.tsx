@@ -3,6 +3,8 @@ import { ago, num } from '@/components/fresh'
 import { indexHealth, rungCounts, shelfSummaries, probeSummary, populationFacts } from '@/lib/queries'
 import { cacheState } from '@/lib/cache'
 import { hireStats } from '@/lib/hire'
+import { facilitatorState } from '@/lib/settle'
+import { db } from '@/lib/db'
 import { SHELF_TITLES } from '@/lib/classify'
 import { CHAIN, REGISTRY } from '@/lib/constants'
 
@@ -13,8 +15,10 @@ export const metadata = { title: 'Status' }
  * The page that makes the Data Quality claim checkable. It reports what the jobs actually
  * did rather than what they were configured to do, and it publishes our own gaps.
  */
-export default function StatusPage() {
+export default async function StatusPage() {
   const h = indexHealth()
+  const fac = await facilitatorState()
+  const settledCount = (db().prepare('SELECT COUNT(*) c FROM hireAttempt WHERE settled = 1').get() as { c: number }).c
   const r = rungCounts()
   const shelves = shelfSummaries()
   const probes = probeSummary()
@@ -78,7 +82,8 @@ export default function StatusPage() {
         <Section title="Hire attempts">
           <Row label="Signed authorizations verified" value={num(hires.attempts)} note="a real EIP-712 signature that recovered to its signer. Signed, not paid" />
           <Row label="Distinct signers" value={num(hires.distinctSigners)} note="" />
-          <Row label="Settled" value="0" note="settlement needs a B402 merchant account, granted on request, and none has cleared yet" />
+          <Row label="Settled on chain" value={num(settledCount)} note={settledCount > 0 ? 'real USD1 transfers submitted by our own facilitator' : 'none has cleared yet'} />
+          <Row label="Facilitator" value={fac.address ? `${fac.address.slice(0, 10)}…` : null} note={fac.canSettle ? `can settle, holds ${fac.bnb} BNB for gas` : fac.reason ?? ''} />
         </Section>
 
         <Section title="The B402 Bazaar join">
@@ -100,10 +105,10 @@ export default function StatusPage() {
         <Section title="What this build does not do">
           <p className="text-sm text-ink-dim">
             Published rather than hidden, because a judge finding it first is worse. Settlement
-            through Binance B402 needs a merchant developer account that is granted on request,
-            so the four first-party agents issue a real 402 a buyer can sign, and the on-chain
-            settle is the step still pending that account. No row is marked settled without a
-            payment that cleared. Escrow, the signed ledger chain and the Altana session panel
+            through Binance B402 needs a merchant developer account that is granted on request.
+            Until then Muster settles EIP-3009 authorizations itself, submitting the transfer from
+            its own key and paying the gas, when that key holds gas. The facilitator row above says
+            whether it can right now. No row is marked settled without a transaction that cleared. Escrow, the signed ledger chain and the Altana session panel
             are out of scope for this entry and the reasons are in the decision records.
           </p>
         </Section>

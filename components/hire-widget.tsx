@@ -20,6 +20,26 @@ export function HireWidget({ shelf, price }: { shelf: string; price: string }) {
   const [account, setAccount] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [result, setResult] = useState<Record<string, unknown> | null>(null)
+  const [offerState, setOfferState] = useState<Record<string, unknown> | null>(null)
+  const [sig, setSig] = useState<string | null>(null)
+  const [fac, setFac] = useState<Record<string, unknown> | null>(null)
+  const [settle, setSettle] = useState<'idle' | 'running' | 'done' | 'error'>('idle')
+  const [settleOut, setSettleOut] = useState<Record<string, unknown> | null>(null)
+
+  async function doSettle() {
+    if (!result || !sig || !offerState) return
+    setSettle('running')
+    try {
+      const r = await fetch('/api/hire', { method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ action: 'settle', attemptId: result['attemptId'], signature: sig, validAfter: offerState['validAfter'] }) })
+      const j = (await r.json()) as Record<string, unknown>
+      setSettleOut(j)
+      setSettle(r.ok ? 'done' : 'error')
+    } catch (e) {
+      setSettleOut({ reason: e instanceof Error ? e.message : String(e) })
+      setSettle('error')
+    }
+  }
 
   const eth = (): Eth | null =>
     typeof window !== 'undefined' ? ((window as unknown as { ethereum?: Eth }).ethereum ?? null) : null
@@ -78,7 +98,13 @@ export function HireWidget({ shelf, price }: { shelf: string; price: string }) {
       const verified = (await verifyRes.json()) as Record<string, unknown>
       if (!verifyRes.ok) throw new Error(String(verified['error'] ?? 'verification failed'))
       setResult(verified)
+      setOfferState(offer)
+      setSig(signature)
       setStep('done')
+      try {
+        const f = await fetch('/api/hire', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'facilitator' }) })
+        setFac((await f.json()) as Record<string, unknown>)
+      } catch { setFac(null) }
     } catch (e) {
       setStep('error')
       setMessage(e instanceof Error ? e.message : String(e))
@@ -131,11 +157,34 @@ export function HireWidget({ shelf, price }: { shelf: string; price: string }) {
             {result['balanceCovers'] === false && <span className="ml-2 text-warn">below the price, so this could not clear</span>}
             {result['balanceCovers'] === true && <span className="ml-2 text-up">covers the price</span>}
           </p>
-          <p className="text-ink-dim">
-            Settlement through Binance B402 is pending a merchant developer account, which is granted
-            on request. Nothing was charged. The envelope below is what a facilitator would settle, and
-            it is recorded here as a signed attempt, not a payment.
-          </p>
+          {fac && fac['canSettle'] === true && result['balanceCovers'] === true ? (
+            <div className="rounded-md border border-brand/40 p-3">
+              <p className="text-ink">
+                Muster can settle this itself. It submits your authorization to the USD1 contract and pays
+                the gas, so {String(result['amountHuman'])} moves from your wallet to the agent on chain.
+              </p>
+              <button type="button" onClick={doSettle} disabled={settle === 'running' || settle === 'done'}
+                className={cn('mt-2 rounded-md bg-brand px-4 py-2 text-sm font-semibold text-canvas', (settle === 'running' || settle === 'done') && 'opacity-60')}>
+                {settle === 'running' ? 'Submitting to BNB Smart Chain' : settle === 'done' ? 'Settled' : `Settle ${String(result['amountHuman'])} on chain`}
+              </button>
+              {settleOut && settle === 'done' && (
+                <p className="mt-2 text-up">
+                  Settled. Transaction{' '}
+                  <a className="num underline" href={`https://bscscan.com/tx/${String(settleOut['transaction'])}`} target="_blank" rel="noreferrer noopener">{String(settleOut['transaction']).slice(0, 18)}…</a>
+                  {settleOut['gasUsed'] ? <span className="text-ink-faint">, {String(settleOut['gasUsed'])} gas paid by the facilitator</span> : null}
+                </p>
+              )}
+              {settleOut && settle === 'error' && <p className="mt-2 text-down">{String(settleOut['reason'] ?? settleOut['error'])}</p>}
+            </div>
+          ) : (
+            <p className="text-ink-dim">
+              {fac && fac['canSettle'] === false
+                ? `Settlement is unavailable right now: ${String(fac['reason'])}. Nothing was charged.`
+                : result['balanceCovers'] === false
+                  ? 'Your wallet holds less USD1 than the price, so this authorization could not clear. Nothing was charged.'
+                  : 'Nothing was charged. The envelope below is what a facilitator would settle, recorded here as a signed attempt, not a payment.'}
+            </p>
+          )}
           <pre className="num max-h-64 overflow-auto rounded-md border border-line bg-canvas p-3 text-xs text-ink-soft">
             {JSON.stringify(result['envelope'], null, 2)}
           </pre>

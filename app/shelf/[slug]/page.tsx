@@ -82,6 +82,15 @@ export default async function ShelfPage({ params, searchParams }: { params: Prom
           </div>
         </div>
 
+        {all < 30 && (
+          <p className="mt-4 max-w-3xl rounded-lg border border-line bg-panel px-4 py-3 text-sm text-ink-dim">
+            This shelf is thinner than the others because the registry holds fewer agents that match its
+            contract, not because it gets less attention. It has the same contract, the same probe
+            coverage, the same facets and one hireable reference agent, exactly like the other three.
+            Depth here is the population, measured, and the count above is the whole of it.
+          </p>
+        )}
+
         <details className="mt-6 rounded-lg border border-line bg-panel">
           <summary className="cursor-pointer px-4 py-3 text-sm text-ink-soft">
             The contract this shelf enforces: {contract.inputs.length} inputs, {contract.outputs.length} outputs, units in {contract.units.split(',')[0]?.trim()}

@@ -108,6 +108,7 @@ CREATE TABLE IF NOT EXISTS probeResult (
   observedAt        INTEGER NOT NULL,
   prober            TEXT NOT NULL,
   note              TEXT,
+  bodyExcerpt       TEXT,
   -- failureClass present on every fail and only on a fail.
   CHECK ((verdict = 'fail') = (failureClass IS NOT NULL))
 );
@@ -182,6 +183,9 @@ export function db(): DatabaseSync {
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
   handle = new DatabaseSync(DB_PATH)
   handle.exec(SCHEMA)
+  // Additive migration for stores created before the column existed. Idempotent.
+  const cols = (handle.prepare('PRAGMA table_info(probeResult)').all() as { name: string }[]).map((c) => c.name)
+  if (!cols.includes('bodyExcerpt')) handle.exec('ALTER TABLE probeResult ADD COLUMN bodyExcerpt TEXT')
   return handle
 }
 

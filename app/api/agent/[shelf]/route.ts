@@ -10,6 +10,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { findAgent, BadRequest, FIRST_PARTY } from '@/lib/agents'
 import { build402, verifyPayment, settlePayment } from '@/lib/b402'
+import { verifyEip3009Envelope } from '@/lib/x402-local'
+import { settleEip3009, facilitatorState, markSettled } from '@/lib/settle'
 import { TOKENS } from '@/lib/constants'
 
 export const dynamic = 'force-dynamic'
@@ -115,20 +117,38 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ shelf: stri
     return NextResponse.json({ error: 'x-payment header is not base64 JSON' }, { status: 400 })
   }
 
-  const verified = await verifyPayment(envelope)
-  if (!verified.isValid) {
-    return NextResponse.json(
-      { error: 'payment_invalid', reason: verified.reason },
-      { status: 402 },
-    )
-  }
-
-  const settled = await settlePayment(envelope)
-  if (!settled.success) {
-    return NextResponse.json(
-      { error: 'payment_not_settled', reason: settled.errorReason, transaction: settled.transaction },
-      { status: 402 },
-    )
+  // Two settlement paths, tried in order. Binance B402 when a merchant account is configured.
+  // Otherwise Muster settles the authorization itself: it verifies the signature locally, then
+  // submits transferWithAuthorization from its own key and pays the gas. Both end in a real
+  // transaction hash or a stated reason, never in a pretended success.
+  let settledTx: string | null = null
+  let via: 'b402' | 'self' = 'b402'
+  if (process.env.B402_BASE_URL) {
+    const verified = await verifyPayment(envelope)
+    if (!verified.isValid) return NextResponse.json({ error: 'payment_invalid', reason: verified.reason }, { status: 402 })
+    const settled = await settlePayment(envelope)
+    if (!settled.success) return NextResponse.json({ error: 'payment_not_settled', reason: settled.errorReason, transaction: settled.transaction }, { status: 402 })
+    settledTx = settled.transaction
+  } else {
+    via = 'self'
+    if (!PAY_TO) {
+      return NextResponse.json({ error: 'payment_not_configured', detail: 'no payout address on this deployment' }, { status: 503 })
+    }
+    const local = await verifyEip3009Envelope(envelope, { payTo: PAY_TO, value: agent.priceBase })
+    if (!local.ok || !local.authorization || !local.signature) {
+      return NextResponse.json({ error: 'payment_invalid', reason: local.reason }, { status: 402 })
+    }
+    const fac = await facilitatorState()
+    if (!fac.canSettle) {
+      return NextResponse.json(
+        { error: 'payment_not_settled', reason: `signature valid, settlement unavailable: ${fac.reason}`, facilitator: fac.address },
+        { status: 402 },
+      )
+    }
+    const settled = await settleEip3009(local.authorization, local.signature)
+    if (!settled.ok) return NextResponse.json({ error: 'payment_not_settled', reason: settled.reason, transaction: settled.transaction }, { status: 402 })
+    settledTx = settled.transaction
+    if (settledTx) markSettled(agent.slug, settledTx)
   }
 
   try {
@@ -137,16 +157,16 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ shelf: stri
       {
         agent: agent.name,
         shelf: agent.slug,
-        payment: { transaction: settled.transaction, scheme: 'eip3009', token: 'USD1' },
+        payment: { transaction: settledTx, scheme: 'eip3009', token: 'USD1', settledVia: via },
         result,
       },
-      { status: 200, headers: { 'x-payment-response': Buffer.from(JSON.stringify({ transaction: settled.transaction })).toString('base64') } },
+      { status: 200, headers: { 'x-payment-response': Buffer.from(JSON.stringify({ transaction: settledTx, via })).toString('base64') } },
     )
   } catch (e) {
     if (e instanceof BadRequest) {
       // The payment settled and the input was bad. Say so plainly, because the buyer paid.
       return NextResponse.json(
-        { error: 'bad_request_after_settlement', detail: e.message, payment: { transaction: settled.transaction } },
+        { error: 'bad_request_after_settlement', detail: e.message, payment: { transaction: settledTx } },
         { status: 400 },
       )
     }

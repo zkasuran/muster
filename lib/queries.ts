@@ -335,6 +335,7 @@ export function recentProbes(limit = 8): { agentId: string; name: string | null;
 
 export interface AgentDetail extends ListingCard {
   payTo: string | null
+  feedbackCount: number
   tokenUri: string
   endpoints: string[]
   skills: string[]
@@ -407,6 +408,7 @@ export function agentDetail(agentId: string): AgentDetail | null {
     lastProbeAt: primary?.lastProbeAt ?? null,
     lastProbeVerdict: primary?.lastProbeVerdict ?? null,
     payTo: primary?.payTo ?? null,
+    feedbackCount: Number(a['feedbackCount'] ?? 0),
     firstParty: primary?.firstParty ?? 0,
     clusterSize: cluster?.c ?? 0,
     tokenUri: String(a['tokenUri'] ?? ''),
@@ -453,8 +455,9 @@ export function probeHistory(listingId: string, limit = 10) {
     observedAt: number
     url: string
     note: string | null
+    bodyExcerpt: string | null
   }>(
-    'SELECT probeId, assertion, verdict, failureClass, httpStatus, sawPaymentRequired, latencyMs, observedAt, url, note FROM probeResult WHERE listingId = ? ORDER BY observedAt DESC LIMIT ?',
+    'SELECT probeId, assertion, verdict, failureClass, httpStatus, sawPaymentRequired, latencyMs, observedAt, url, note, bodyExcerpt FROM probeResult WHERE listingId = ? ORDER BY observedAt DESC LIMIT ?',
     listingId,
     limit,
   )
@@ -522,4 +525,11 @@ export function firstPartyOnShelf(shelf: Shelf): { agentId: string; name: string
     CHAIN_ID,
     shelf,
   )
+}
+
+/** On-chain feedback for one agent, as the sweep read it. */
+export function feedbackFor(agentId: string): { clients: number; count: number; value: string; decimals: number; readAt: number } | null {
+  const r = one<{ v: string }>('SELECT v FROM meta WHERE k = ?', `feedback.${agentId}`)
+  if (!r) return null
+  try { return JSON.parse(r.v) } catch { return null }
 }

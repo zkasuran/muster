@@ -3,7 +3,8 @@ import Link from 'next/link'
 import { Nav, Footer } from '@/components/nav'
 import { EvidenceBadge, EvidenceLadder, RungBar } from '@/components/evidence'
 import { ago, num } from '@/components/fresh'
-import { agentDetail, probeHistory, firstPartyOnShelf } from '@/lib/queries'
+import { agentDetail, probeHistory, firstPartyOnShelf, feedbackFor } from '@/lib/queries'
+import { parseAgentCard } from '@/lib/agentcard'
 import { SHELF_TITLES } from '@/lib/classify'
 import { REGISTRY, TOKENS } from '@/lib/constants'
 import { FIRST_PARTY } from '@/lib/agents'
@@ -31,6 +32,10 @@ export default async function AgentPage({ params }: { params: Promise<{ id: stri
   if (!a) notFound()
   const probes = probeHistory(a.listingId, 8)
   const ours = a.firstParty === 1
+  // What its endpoint actually returned, from the most recent probe that kept a body.
+  const withBody = probes.find((p) => p.bodyExcerpt && p.bodyExcerpt.trim() !== '')
+  const card = withBody ? parseAgentCard(withBody.bodyExcerpt!) : null
+  const feedback = ours ? null : feedbackFor(a.agentId)
   const reserved = Number(a.agentId) >= RESERVED_BASE
   const spec = ours ? FIRST_PARTY.find((f) => f.slug === a.category) ?? null : null
   const sibling = ours ? null : firstPartyOnShelf(a.category)
@@ -186,6 +191,42 @@ export default async function AgentPage({ params }: { params: Promise<{ id: stri
               )}
             </Card>
 
+            {card && (
+              <Card title="What its endpoint actually returned">
+                <p className="mb-3 text-xs text-ink-faint">
+                  Read by the probe from <span className="num break-all">{withBody?.url}</span>, {withBody ? ago(Math.round((Date.now() - withBody.observedAt) / 1000)) : ''}.
+                  This is the agent describing itself over the wire, which is one rung more than a registration record.
+                </p>
+                <Field label="Shape" value={card.kind === 'a2a' ? 'A2A agent card' : card.kind === 'x402' ? 'x402 payment challenge' : card.kind === 'oasf' ? 'OASF record' : card.kind === 'json' ? 'JSON' : 'text'} />
+                <Field label="Name it gives itself" value={card.name} fallback="none in the response" />
+                <Field label="Version" value={card.version} fallback="none" />
+                <Field label="Endpoint it names" value={card.url} mono fallback="none" />
+                {card.capabilities.length > 0 && <Field label="Capabilities" value={card.capabilities.join(', ')} />}
+                {card.description && <p className="mt-2 text-sm text-ink-dim">{card.description}</p>}
+                {card.skills.length > 0 && (
+                  <div className="mt-3">
+                    <div className="text-xs text-ink-faint">Skills it advertises, {card.skills.length}</div>
+                    <ul className="mt-1 space-y-1 text-sm">
+                      {card.skills.slice(0, 12).map((s) => (
+                        <li key={s.id}><span className="text-ink">{s.name}</span>{s.description && <span className="text-ink-dim"> · {s.description.slice(0, 120)}</span>}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {card.accepts.length > 0 && (
+                  <div className="mt-3">
+                    <div className="text-xs text-ink-faint">Payment options in its 402, {card.accepts.length}</div>
+                    <ul className="mt-1 space-y-0.5 text-xs">
+                      {card.accepts.slice(0, 8).map((x, i) => (
+                        <li key={i} className={`num ${x.network === 'eip155:56' ? 'text-ink' : 'text-ink-faint'}`}>{x.scheme} · {x.network || 'network unknown'} · {x.asset.slice(0, 12)}… · {x.amount}{x.network === 'eip155:56' ? '' : '  (not BSC)'}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {card.kind === 'text' && <pre className="num mt-2 max-h-40 overflow-auto rounded-md border border-line bg-canvas p-2 text-xs text-ink-faint">{card.excerpt}</pre>}
+              </Card>
+            )}
+
             <Card title="What it declared, and what that is worth">
               <p className="mb-3 text-xs text-ink-faint">
                 Everything in this block is the operator&apos;s own claim, stored separately from anything we
@@ -265,6 +306,11 @@ export default async function AgentPage({ params }: { params: Promise<{ id: stri
                   <Field label="Distinct from owner" value={a.agentWallet && a.agentWallet.toLowerCase() !== a.owner.toLowerCase() ? 'yes' : 'no, it is the holder'} />
                   <Field label="First seen at block" value={a.firstSeenBlock ? num(a.firstSeenBlock) : null} />
                   <Field label="Identical registrations" value={a.clusterSize > 1 ? `${a.clusterSize} agents share this record` : 'unique'} />
+                  <Field
+                    label="On-chain feedback"
+                    value={feedback ? `${feedback.count} from ${feedback.clients} address${feedback.clients === 1 ? '' : 'es'}` : a.feedbackCount > 0 ? `${a.feedbackCount}` : null}
+                    fallback="none on the Reputation Registry"
+                  />
                   <div className="mt-3 space-y-1 text-xs">
                     <a className="block text-brand" href={`https://bscscan.com/token/${REGISTRY.identity}?a=${a.agentId}`} rel="noreferrer noopener" target="_blank">View on BscScan</a>
                   </div>

@@ -48,17 +48,21 @@ export default function Home() {
               </div>
               <ul className="mt-3 divide-y divide-line-soft">
                 {top.map(({ shelf, card }) => (
-                  <li key={shelf} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5">
-                    <span className="w-24 shrink-0 text-xs text-ink-faint">{SHELF_TITLES[shelf]}</span>
-                    {card ? (
-                      <>
-                        <Link href={`/agent/${card.agentId}`} className="min-w-0 flex-1 truncate text-sm text-ink hover:text-brand">{card.name}</Link>
-                        {card.firstParty === 1 && <span className="rounded-sm border border-warn/50 px-1 text-[10px] text-warn">ours</span>}
-                        <span className="num text-xs text-ink-dim">{card.priceBase && card.priceDecimals !== null ? `${Number(BigInt(card.priceBase)) / 10 ** card.priceDecimals} ${TOKENS.USD1.symbol}` : ''}</span>
-                        <span className="hidden md:inline-flex"><RungBar rung={card.evidenceTier} /></span>
-                      </>
-                    ) : (
-                      <span className="unknown text-sm">none hireable in USD1 yet</span>
+                  <li key={shelf} className="py-2.5">
+                    <div className="flex items-baseline gap-2">
+                      <span className="w-24 shrink-0 text-xs text-ink-faint">{SHELF_TITLES[shelf]}</span>
+                      {card ? (
+                        <Link href={`/agent/${card.agentId}`} className="min-w-0 flex-1 text-sm text-ink hover:text-brand">{card.name}</Link>
+                      ) : (
+                        <span className="unknown text-sm">none hireable in USD1 yet</span>
+                      )}
+                      {card?.firstParty === 1 && <span className="shrink-0 rounded-sm border border-warn/50 px-1 text-[10px] text-warn">ours</span>}
+                    </div>
+                    {card && (
+                      <div className="mt-1 flex items-center justify-between gap-3 pl-24">
+                        <span className="num text-xs text-ink-dim">{card.priceBase && card.priceDecimals !== null ? `${Number(BigInt(card.priceBase)) / 10 ** card.priceDecimals} ${TOKENS.USD1.symbol} per call` : ''}</span>
+                        <RungBar rung={card.evidenceTier} />
+                      </div>
                     )}
                   </li>
                 ))}

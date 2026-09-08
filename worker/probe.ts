@@ -239,6 +239,8 @@ export interface ProbeOutcome {
   tlsOk: boolean
   latencyMs: number | null
   note: string | null
+  /** The response body, bounded, so the agent page can show what the endpoint actually said. */
+  body: string
 }
 
 interface RawResponse {
@@ -485,6 +487,7 @@ export async function probeUrl(url: string): Promise<ProbeOutcome> {
     tlsOk: false,
     latencyMs: null,
     note: null,
+    body: '',
   }
   const guard = await checkUrl(url)
   if (!guard.ok) {
@@ -546,7 +549,7 @@ export async function probeUrl(url: string): Promise<ProbeOutcome> {
       continue
     }
 
-    return { ...base, ...classifyStatus(res, target, trail), httpStatus: res.status, tlsOk: res.tlsOk, latencyMs: res.latencyMs }
+    return { ...base, ...classifyStatus(res, target, trail), httpStatus: res.status, tlsOk: res.tlsOk, latencyMs: res.latencyMs, body: res.body }
   }
 }
 
@@ -663,8 +666,8 @@ export function observedRung(out: ProbeOutcome): EvidenceRung | null {
 const INSERT_PROBE = `
 INSERT INTO probeResult (
   probeId, listingId, agentId, url, assertion, verdict, failureClass, httpStatus,
-  sawPaymentRequired, tlsOk, latencyMs, observedAt, prober, note
-) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+  sawPaymentRequired, tlsOk, latencyMs, observedAt, prober, note, bodyExcerpt
+) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
 
 const BUMP_LISTING = `
 UPDATE listing SET lastProbeAt = ?, lastProbeVerdict = ?, evidenceTier = ?, lifecycleState = ?,
@@ -763,6 +766,9 @@ export async function probeCycle(limit = 40): Promise<{
           now,
           PROBER,
           out.note,
+          // What the endpoint actually said, bounded, so the agent page can show it. A 2xx or a
+          // 402 body is worth keeping; an error page is not.
+          out.httpStatus !== null && (out.httpStatus < 300 || out.httpStatus === 402) ? out.body.slice(0, 4000) : null,
         )
       db().prepare(BUMP_LISTING).run(now, out.verdict, nextTier, state, now, row.listingId)
     })

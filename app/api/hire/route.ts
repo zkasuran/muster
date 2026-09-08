@@ -10,6 +10,8 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { offerTypedData, verifyHire, HireError } from '@/lib/hire'
+import { settleEip3009, facilitatorState, markSettled } from '@/lib/settle'
+import { db } from '@/lib/db'
 import { findAgent, BadRequest } from '@/lib/agents'
 
 export const dynamic = 'force-dynamic'
@@ -51,6 +53,24 @@ export async function POST(req: NextRequest) {
         validBefore: Number(body['validBefore']),
       })
       return NextResponse.json(out)
+    }
+    if (action === 'facilitator') {
+      return NextResponse.json(await facilitatorState())
+    }
+    if (action === 'settle') {
+      // Complete a verified attempt on chain. The attempt row carries everything the transfer
+      // needs except the signature, which the client presents again so the server never stores it.
+      const attemptId = String(body['attemptId'] ?? '')
+      const signature = String(body['signature'] ?? '')
+      const row = db().prepare('SELECT shelf, signer, payTo, amountBase, nonce, validBefore, settled FROM hireAttempt WHERE attemptId = ?').get(attemptId) as
+        | { shelf: string; signer: string; payTo: string; amountBase: string; nonce: string; validBefore: number; settled: number } | undefined
+      if (!row) return NextResponse.json({ error: 'unknown attempt' }, { status: 404 })
+      if (row.settled === 1) return NextResponse.json({ error: 'already settled' }, { status: 409 })
+      const validAfter = Number(body['validAfter'])
+      if (!Number.isFinite(validAfter)) return NextResponse.json({ error: 'validAfter required' }, { status: 400 })
+      const result = await settleEip3009({ from: row.signer, to: row.payTo, value: row.amountBase, validAfter, validBefore: row.validBefore, nonce: row.nonce }, signature, attemptId)
+      if (result.ok && result.transaction) markSettled(row.shelf, result.transaction)
+      return NextResponse.json(result, { status: result.ok ? 200 : 402 })
     }
     if (action === 'sample') {
       const agent = findAgent(shelf)
