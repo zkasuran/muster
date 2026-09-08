@@ -42,7 +42,7 @@ s, _ = get('/agent/abc')
 if s != 404: f('minor', '/agent/abc', f'HTTP {s}', 'Functionality', 'bad id should 404')
 
 # 4 compare, search, status, hire
-for path, must in [('/compare?ids=900000001,322885,259573', ['Evidence rung', 'Hire']), ('/compare', ['Pick at least two']), ('/search?q=health', ['result']), ('/search?q=zzzzqqq', ['Nothing matched']), ('/status', ['Probes recorded', 'Signed authorizations']), ('/hire/yield', ['Run a free sample', 'Sign a real authorization'])]:
+for path, must in [('/compare?ids=900000001,322885,259573', ['Evidence rung', 'Hire']), ('/compare', ['Pick at least two']), ('/search?q=health', ['result']), ('/search?q=zzzzqqq', ['Nothing matched']), ('/status', ['Probes recorded', 'Signed authorizations']), ('/report', ['Method, stated before the numbers', 'T1']), ('/hire/yield', ['Run a free sample', 'Sign a real authorization'])]:
     s, h = get(path); t = text(h)
     if s != 200: f('blocker', path, f'HTTP {s}', 'Functionality', 'must load')
     for k in must:
