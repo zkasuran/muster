@@ -378,8 +378,10 @@ export function probeHistory(listingId: string, limit = 10) {
     sawPaymentRequired: number
     latencyMs: number | null
     observedAt: number
+    url: string
+    note: string | null
   }>(
-    'SELECT probeId, assertion, verdict, failureClass, httpStatus, sawPaymentRequired, latencyMs, observedAt FROM probeResult WHERE listingId = ? ORDER BY observedAt DESC LIMIT ?',
+    'SELECT probeId, assertion, verdict, failureClass, httpStatus, sawPaymentRequired, latencyMs, observedAt, url, note FROM probeResult WHERE listingId = ? ORDER BY observedAt DESC LIMIT ?',
     listingId,
     limit,
   )
@@ -437,4 +439,14 @@ export function probeSummary(): {
   const last = one<{ m: number | null }>('SELECT MAX(observedAt) m FROM probeResult')
   const paid = one<{ c: number }>('SELECT COUNT(DISTINCT listingId) c FROM probeResult WHERE sawPaymentRequired = 1')?.c ?? 0
   return { total, listingsProbed, verdicts, failureClasses, lastObservedAt: last?.m ?? null, sawPaymentRequired: paid }
+}
+
+/** Our reference agent on a shelf, if any, so a third-party page can offer a comparison. */
+export function firstPartyOnShelf(shelf: Shelf): { agentId: string; name: string | null } | null {
+  return one<{ agentId: string; name: string | null }>(
+    `SELECT l.agentId, a.name FROM listing l JOIN agent a ON a.chainId = l.chainId AND a.agentId = l.agentId
+     WHERE l.chainId = ? AND l.category = ? AND l.firstParty = 1 LIMIT 1`,
+    CHAIN_ID,
+    shelf,
+  )
 }

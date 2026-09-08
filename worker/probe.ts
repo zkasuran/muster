@@ -707,15 +707,30 @@ export async function probeCycle(limit = 40): Promise<{
   let promoted = 0
   let deferred = 0
 
+  // One request per URL per cycle, with the answer applied to every candidate that declared
+  // that exact URL. Measured need: 56 agents on one host share one endpoint string, and a
+  // one-request-per-host rule would take 56 cycles to reach them while the same response
+  // arrived every time. Same URL, same answer, honestly. A different URL on the same host is
+  // still deferred, because a different path can answer differently.
+  const answered = new Map<string, ProbeOutcome>()
+
   for (const row of candidates) {
-    const chosen = pickEndpoint(safeArr(row.endpoints), hostsUsed)
-    // Nothing written for a host already used this cycle. A row nobody attempted is not a result.
-    if (!chosen) {
-      deferred++
-      continue
+    const urls = safeArr(row.endpoints)
+    const reused = urls.map((u) => answered.get(u)).find((o): o is ProbeOutcome => o !== undefined)
+    let out: ProbeOutcome
+    if (reused) {
+      out = reused
+    } else {
+      const chosen = pickEndpoint(urls, hostsUsed)
+      // Nothing written for a host already used this cycle. A row nobody attempted is not a result.
+      if (!chosen) {
+        deferred++
+        continue
+      }
+      hostsUsed.add(chosen.host)
+      out = await probeUrl(chosen.url)
+      answered.set(chosen.url, out)
     }
-    hostsUsed.add(chosen.host)
-    const out = await probeUrl(chosen.url)
     if (out.verdict === 'pass') passed++
     else if (out.verdict === 'fail') failed++
     else skipped++
