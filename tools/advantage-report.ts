@@ -9,7 +9,7 @@
  * an operator-run control, not a blind human timing, and the report says so.
  */
 import { execFileSync } from 'node:child_process'
-import { writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { listMarkets } from '../lib/venus.ts'
 
 const BASE = process.env.BASE ?? 'https://muster.zkasuran.dev'
@@ -20,6 +20,8 @@ const now = () => Date.now()
 interface Arm { label: string; ms: number; calls: number; output: unknown; cost: string }
 interface Task { id: string; title: string; category: string; question: string; agent: Arm; manual: Arm; agreement: string }
 const tasks: Task[] = []
+const ONLY = process.env.ONLY ?? null
+const want = (id: string) => ONLY === null || ONLY === id
 
 async function agentArm(shelf: string, params: Record<string, string>): Promise<Arm> {
   // The hired path, minus settlement which is pending a merchant account. The sample action
@@ -46,7 +48,7 @@ async function agentArm(shelf: string, params: Record<string, string>): Promise<
 }
 
 // Task 1, security: is this Venus borrower close to liquidation?
-{
+if (want('T1')) {
   const acct = '0xed87331DcAe2ed002c42EdD102fEf91bd2BdB0bE'
   const agent = await agentArm('health-factor', { account: acct })
   const t0 = now(); let calls = 0
@@ -81,7 +83,7 @@ async function agentArm(shelf: string, params: Record<string, string>): Promise<
 }
 
 // Task 2, yield: where does USD earn the most on Venus right now?
-{
+if (want('T2')) {
   const agent = await agentArm('yield', { limit: '5' })
   const t0 = now(); let calls = 0
   // A person would look the vToken addresses up on Venus first. That lookup is one step here,
@@ -104,7 +106,7 @@ async function agentArm(shelf: string, params: Record<string, string>): Promise<
 }
 
 // Task 3, trading: plan a grid on WBNB/USDT around the live price
-{
+if (want('T3')) {
   const agent = await agentArm('grid-trading', {})
   const t0 = now(); let calls = 0
   const pool = '0x172fcD41E0913e95784454622d1c3724f546f849'
@@ -120,6 +122,12 @@ async function agentArm(shelf: string, params: Record<string, string>): Promise<
   tasks.push({ id: 'T3', title: 'Plan an 8-level grid on WBNB/USDT around the live price', category: 'trading', question: 'grid ladder, 10% each side, 1000 USDT', agent, manual, agreement: `agent mark ${plan.markPrice.toFixed(2)} vs manual ${mark.toFixed(2)}; agent L0 ${plan.levels[0]!.price.toFixed(2)} vs manual ${levels[0]}` })
 }
 
-const report = { generatedAt: new Date().toISOString(), site: BASE, method: 'Operator ran both arms. The agent arm is the identical code the paid endpoint runs, on the identical inputs, timed round trip from a client. The control arm is one cast call at a time in the order a person would make them, timed wall clock, on the same machine. No independent grader and no first-time visitor were available before the close, so output quality is measured as numerical agreement between the two arms rather than by a blind rating.', tasks }
+let merged = tasks
+if (ONLY !== null) {
+  const prev = JSON.parse(readFileSync('docs/research/agent-advantage-report.json', 'utf8')) as { tasks: Task[] }
+  merged = prev.tasks.map((p) => tasks.find((n) => n.id === p.id) ?? p)
+  for (const n of tasks) if (!merged.some((m) => m.id === n.id)) merged.push(n)
+}
+const report = { generatedAt: new Date().toISOString(), site: BASE, reruns: ONLY !== null ? `task ${ONLY} rerun after a transient RPC failure nulled the agent arm; other tasks kept from the first run` : 'none', method: 'Operator ran both arms. The agent arm is the identical code the paid endpoint runs, on the identical inputs, timed round trip from a client. The control arm is one cast call at a time in the order a person would make them, timed wall clock, on the same machine. No independent grader and no first-time visitor were available before the close, so output quality is measured as numerical agreement between the two arms rather than by a blind rating.', tasks: merged }
 writeFileSync('docs/research/agent-advantage-report.json', JSON.stringify(report, null, 2))
-for (const t of tasks) console.log(`${t.id} ${t.title}\n   agent  ${t.agent.ms} ms, ${t.agent.calls} call, ${t.agent.cost}\n   manual ${t.manual.ms} ms, ${t.manual.calls} calls, ${t.manual.cost}\n   ${t.agreement}`)
+for (const t of merged) console.log(`${t.id} ${t.title}\n   agent  ${t.agent.ms} ms, ${t.agent.calls} call, ${t.agent.cost}\n   manual ${t.manual.ms} ms, ${t.manual.calls} calls, ${t.manual.cost}\n   ${t.agreement}`)

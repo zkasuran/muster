@@ -95,8 +95,9 @@ export default function ReportPage() {
             <section className="mt-10 rounded-lg border border-line bg-panel p-4 text-sm text-ink-dim">
               <h2 className="mb-2 text-xs uppercase tracking-wide text-ink-faint">What this does and does not show</h2>
               <p>
-                The agent arm is faster because one call replaces a chain of reads a person has to
-                sequence and price by hand, and its outputs carry the block they were read at. The
+                On T1 and T3 the agent arm is faster because one call replaces a chain of reads a
+                person has to sequence and price by hand, and its outputs carry the block they were
+                read at. On T2 the hired arm was slower than the control. That is a real result and it is kept: the agent walks every Venus market, 55 of them, then ranks, while the control read five markets the operator already knew to pick. The agent also measures the block time it compounds with, where the control assumed 0.45 seconds. A cold process paid the full walk. A second call within the freshness window answers from the cache in under a second, which the status page shows. Coverage cost time here. The report says so rather than picking the faster framing. The
                 manual arm is what a competent operator with cast can do in the time shown, and it
                 needs the operator to already know the contract addresses and the formula. Cost on
                 the agent side is the quoted price in the 402. Settlement through Binance B402 is

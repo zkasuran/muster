@@ -1,6 +1,7 @@
 {
-  "generatedAt": "2026-09-08T14:01:48.175Z",
+  "generatedAt": "2026-09-08T14:05:52.424Z",
   "site": "https://muster.zkasuran.dev",
+  "reruns": "task T1 rerun after a transient RPC failure nulled the agent arm; other tasks kept from the first run",
   "method": "Operator ran both arms. The agent arm is the identical code the paid endpoint runs, on the identical inputs, timed round trip from a client. The control arm is one cast call at a time in the order a person would make them, timed wall clock, on the same machine. No independent grader and no first-time visitor were available before the close, so output quality is measured as numerical agreement between the two arms rather than by a blind rating.",
   "tasks": [
     {
@@ -10,24 +11,24 @@
       "question": "health factor of 0xed87331DcAe2ed002c42EdD102fEf91bd2BdB0bE",
       "agent": {
         "label": "hired through Muster",
-        "ms": 21800,
+        "ms": 5015,
         "calls": 1,
         "output": {
           "account": "0xed87331DcAe2ed002c42EdD102fEf91bd2BdB0bE",
-          "healthFactor": null,
-          "verdict": "no borrow, so no liquidation risk",
-          "totalCollateralUsd": null,
-          "totalBorrowUsd": null,
-          "liquidityUsd": null,
-          "shortfallUsd": null,
-          "priceDropToLiquidationPct": null,
+          "healthFactor": 1.7670838359216596,
+          "verdict": "comfortable",
+          "totalCollateralUsd": 2833.1165333644626,
+          "totalBorrowUsd": 1603.2722815818138,
+          "liquidityUsd": 1229.8442517826486,
+          "shortfallUsd": 0,
+          "priceDropToLiquidationPct": 43.409589309132635,
           "markets": [
             {
               "symbol": "vXRP",
-              "suppliedUsd": 4367.217581015831,
+              "suppliedUsd": 4358.640820560711,
               "liquidationThreshold": 0.65,
-              "weightedCollateralUsd": 2838.69142766029,
-              "borrowedUsd": 568.2493279975475,
+              "weightedCollateralUsd": 2833.1165333644626,
+              "borrowedUsd": 567.1333455042083,
               "collateralFactor": 0.5
             },
             {
@@ -35,7 +36,7 @@
               "suppliedUsd": 0,
               "liquidationThreshold": 0.8,
               "weightedCollateralUsd": 0,
-              "borrowedUsd": 510.929857388959,
+              "borrowedUsd": 510.93021790833524,
               "collateralFactor": 0.8
             },
             {
@@ -43,30 +44,30 @@
               "suppliedUsd": 0,
               "liquidationThreshold": 0.825,
               "weightedCollateralUsd": 0,
-              "borrowedUsd": 525.2084190718174,
+              "borrowedUsd": 525.2087181692702,
               "collateralFactor": 0.825
             }
           ],
           "formula": "HF = sumCollateral(liquidationThreshold) / sumBorrowPlusEffects. Venus publishes liquidity and shortfall, never a health factor, so this is derived. Per entered market, collateral = liquidationThreshold * exchangeRateStored / 1e18 * oraclePrice / 1e18 * vTokenBalance / 1e18 and debt = oraclePrice * borrowBalance / 1e18, both USD scaled 1e18, all integer truncating. VAIController.getVAIRepayAmount is added to the debt side. Venus liquidates when shortfall is non-zero, which is exactly HF < 1.",
-          "atBlock": 120698155,
-          "readAt": 1788875856613
+          "atBlock": 120699254,
+          "readAt": 1788876334014
         },
         "cost": "0.02 USD1 per call, quoted in the 402"
       },
       "manual": {
         "label": "by hand with cast",
-        "ms": 18571,
+        "ms": 18784,
         "calls": 21,
         "output": {
           "account": "0xed87331DcAe2ed002c42EdD102fEf91bd2BdB0bE",
-          "healthFactor": 1.7693301651372861,
-          "weightedCollateralUsd": 2838.69,
-          "borrowUsd": 1604.39,
+          "healthFactor": 1.7670838297908695,
+          "weightedCollateralUsd": 2833.12,
+          "borrowUsd": 1603.27,
           "rows": [
             {
               "market": "vXRP",
-              "suppliedUsd": 4367.22,
-              "borrowedUsd": 568.25,
+              "suppliedUsd": 4358.64,
+              "borrowedUsd": 567.13,
               "liquidationThreshold": 0.65
             },
             {
@@ -82,11 +83,11 @@
               "liquidationThreshold": 0.825
             }
           ],
-          "comptrollerLiquidity": "0\n1234303806741965720308 [1.234e21]\n0"
+          "comptrollerLiquidity": "0\n1229844248510615991862 [1.229e21]\n0"
         },
         "cost": "operator time only, no payment"
       },
-      "agreement": "arms disagree on whether a borrow exists: agent null vs manual 1.7693301651372861"
+      "agreement": "agent 1.7671 vs manual 1.7671, 0.00% apart"
     },
     {
       "id": "T2",
