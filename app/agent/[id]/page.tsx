@@ -197,10 +197,14 @@ export default async function AgentPage({ params }: { params: Promise<{ id: stri
                   Read by the probe from <span className="num break-all">{withBody?.url}</span>, {withBody ? ago(Math.round((Date.now() - withBody.observedAt) / 1000)) : ''}.
                   This is the agent describing itself over the wire, which is one rung more than a registration record.
                 </p>
-                <Field label="Shape" value={card.kind === 'a2a' ? 'A2A agent card' : card.kind === 'x402' ? 'x402 payment challenge' : card.kind === 'oasf' ? 'OASF record' : card.kind === 'json' ? 'JSON' : 'text'} />
-                <Field label="Name it gives itself" value={card.name} fallback="none in the response" />
-                <Field label="Version" value={card.version} fallback="none" />
-                <Field label="Endpoint it names" value={card.url} mono fallback="none" />
+                <Field label="Shape" value={card.kind === 'a2a' ? 'A2A agent card' : card.kind === 'x402' ? 'x402 payment challenge' : card.kind === 'oasf' ? 'OASF record' : card.kind === 'json' ? 'JSON' : card.kind === 'html' ? 'web page for a browser' : 'text'} />
+                {card.kind !== 'html' && (
+                  <>
+                    <Field label="Name it gives itself" value={card.name} fallback="none in the response" />
+                    <Field label="Version" value={card.version} fallback="none" />
+                    <Field label="Endpoint it names" value={card.url} mono fallback="none" />
+                  </>
+                )}
                 {card.capabilities.length > 0 && <Field label="Capabilities" value={card.capabilities.join(', ')} />}
                 {card.description && <p className="mt-2 text-sm text-ink-dim">{card.description}</p>}
                 {card.skills.length > 0 && (
@@ -222,6 +226,13 @@ export default async function AgentPage({ params }: { params: Promise<{ id: stri
                       ))}
                     </ul>
                   </div>
+                )}
+                {card.kind === 'html' && (
+                  <p className="mt-2 text-sm text-ink-dim">
+                    The endpoint answered with a web page rather than a machine-readable card. A browser can
+                    read it, an agent cannot, so this row earns no capability from it. Page title:{' '}
+                    <span className="text-ink">{card.name ?? 'none set'}</span>.
+                  </p>
                 )}
                 {card.kind === 'text' && <pre className="num mt-2 max-h-40 overflow-auto rounded-md border border-line bg-canvas p-2 text-xs text-ink-faint">{card.excerpt}</pre>}
               </Card>

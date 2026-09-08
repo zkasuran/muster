@@ -1,11 +1,12 @@
 /**
  * Read what an agent's endpoint actually returned, and turn it into something a buyer can read.
- * Three shapes are live in the population: an A2A agent card (name, description, skills, url,
- * capabilities), an x402 challenge (accepts[]), and an OASF-style record. Anything else is kept
- * as a short excerpt so the page shows what came back rather than nothing.
+ * Three machine shapes are live in the population: an A2A agent card (name, description, skills,
+ * url, capabilities), an x402 challenge (accepts[]) and an OASF-style record. A fourth answer is
+ * a web page meant for a browser, which is reported as such with only its title. Anything else
+ * is kept as a short excerpt so the page shows what came back rather than nothing.
  */
 export interface AgentCard {
-  kind: 'a2a' | 'x402' | 'oasf' | 'json' | 'text'
+  kind: 'a2a' | 'x402' | 'oasf' | 'json' | 'html' | 'text'
   name: string | null
   description: string | null
   url: string | null
@@ -19,6 +20,14 @@ export interface AgentCard {
 export function parseAgentCard(body: string): AgentCard | null {
   if (!body || body.trim() === '') return null
   const excerpt = body.slice(0, 600)
+  const head = body.slice(0, 400).trimStart().toLowerCase()
+  if (head.startsWith('<!doctype') || head.startsWith('<html') || /<html[\s>]/.test(head)) {
+    // A web page is an answer for a browser, not for an agent. Keep its title and nothing else, so
+    // the page never shows a screenful of markup as if it were a capability record.
+    const title = /<title[^>]*>([^<]{1,200})<\/title>/i.exec(body)?.[1]?.trim() ?? null
+    const desc = /<meta\s+name=["']description["']\s+content=["']([^"']{1,400})["']/i.exec(body)?.[1]?.trim() ?? null
+    return { kind: 'html', name: title, description: desc, url: null, version: null, skills: [], capabilities: [], accepts: [], excerpt: '' }
+  }
   let o: Record<string, unknown>
   try {
     o = JSON.parse(body) as Record<string, unknown>
