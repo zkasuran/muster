@@ -650,7 +650,7 @@ function pickEndpoint(endpoints: string[], taken: Set<string>): { url: string; h
 }
 
 /** The highest rung this outcome supports. Null when it supports none. */
-function observedRung(out: ProbeOutcome): EvidenceRung | null {
+export function observedRung(out: ProbeOutcome): EvidenceRung | null {
   // `reachable` is defined as the host resolving and TLS completing, so nothing above `declared` is
   // available without a verified certificate.
   if (!out.tlsOk) return null

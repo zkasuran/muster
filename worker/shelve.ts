@@ -44,11 +44,23 @@ export function shelve(): { scanned: number; written: number; perShelf: Record<s
                             evidenceTier, firstParty, updatedAt)
        VALUES (?,?,?,?,?,?,?,0,?)
        ON CONFLICT(chainId, agentId, category) DO UPDATE SET
-         evidenceTier = excluded.evidenceTier,
-         visibility = excluded.visibility,
+         -- A rung can only rise here. The declaration-derived rung is the floor, and a rung a
+         -- probe earned must never be overwritten by a re-shelve. A first-party row is never
+         -- touched at all, because its rung comes from the seed and the endpoint it serves.
+         evidenceTier = CASE
+           WHEN listing.firstParty = 1 THEN listing.evidenceTier
+           WHEN (CASE excluded.evidenceTier WHEN 'settled' THEN 6 WHEN 'payable' THEN 5 WHEN 'probed' THEN 4
+                 WHEN 'reachable' THEN 3 WHEN 'declared' THEN 2 ELSE 1 END)
+              > (CASE listing.evidenceTier WHEN 'settled' THEN 6 WHEN 'payable' THEN 5 WHEN 'probed' THEN 4
+                 WHEN 'reachable' THEN 3 WHEN 'declared' THEN 2 ELSE 1 END)
+           THEN excluded.evidenceTier ELSE listing.evidenceTier END,
+         visibility = CASE WHEN listing.firstParty = 1 THEN listing.visibility ELSE excluded.visibility END,
          updatedAt = excluded.updatedAt`,
     )
     for (const r of rows) {
+      // Reserved ids are the first-party agents. Their listings come from the seed, not from
+      // classification, and must not be re-shelved by a pass that cannot see their rung.
+      if (Number(r.agentId) >= 900_000_000) continue
       if (r.duplicateClusterId) {
         if (clusterSeen.has(r.duplicateClusterId)) continue
         clusterSeen.add(r.duplicateClusterId)

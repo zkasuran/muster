@@ -3,11 +3,26 @@ import Link from 'next/link'
 import { Nav, Footer } from '@/components/nav'
 import { EvidenceBadge, EvidenceLadder } from '@/components/evidence'
 import { ago, num } from '@/components/fresh'
-import { agentDetail, probeHistory } from '@/lib/queries'
+import { agentDetail, probeHistory, firstPartyOnShelf } from '@/lib/queries'
 import { SHELF_TITLES } from '@/lib/classify'
 import { REGISTRY, TOKENS } from '@/lib/constants'
+import { FIRST_PARTY } from '@/lib/agents'
+import { EVIDENCE_ORDER, type EvidenceRung } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
+
+const PUBLIC_ORIGIN = process.env.MUSTER_ORIGIN_URL ?? 'https://muster.zkasuran.dev'
+const RESERVED_BASE = 900_000_000
+
+/** What a row below payable still has to show before it can be hired. Derived from the rung. */
+const MISSING: Record<EvidenceRung, string> = {
+  registered: 'Its record names no endpoint, so there is nothing to probe and nothing to hire.',
+  declared: 'It names an endpoint that nobody has reached yet. The next probe cycle will try it.',
+  reachable: 'Its host answers over TLS, and it has not yet answered a probe in a way that matches what it declared.',
+  probed: 'It answers, and it has not returned an HTTP 402 with payment requirements, so there is no price to pay.',
+  payable: '',
+  settled: '',
+}
 
 export default async function AgentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -15,9 +30,18 @@ export default async function AgentPage({ params }: { params: Promise<{ id: stri
   const a = agentDetail(id)
   if (!a) notFound()
   const probes = probeHistory(a.listingId, 8)
+  const ours = a.firstParty === 1
+  const reserved = Number(a.agentId) >= RESERVED_BASE
+  const spec = ours ? FIRST_PARTY.find((f) => f.slug === a.category) ?? null : null
+  const sibling = ours ? null : firstPartyOnShelf(a.category)
+  const hireable = a.evidenceTier === 'payable' || a.evidenceTier === 'settled'
+  const latest = probes[0] ?? null
+  const paidProbe = probes.find((p) => p.sawPaymentRequired === 1) ?? null
+  const offChainOnly = paidProbe?.note?.includes('bsc=no') ?? false
   const priceSym =
-    Object.values(TOKENS).find((t) => t.address.toLowerCase() === a.priceToken?.toLowerCase())
-      ?.symbol ?? null
+    Object.values(TOKENS).find((t) => t.address.toLowerCase() === a.priceToken?.toLowerCase())?.symbol ?? null
+  const priceHuman =
+    a.priceBase && a.priceDecimals !== null ? `${Number(BigInt(a.priceBase)) / 10 ** a.priceDecimals} ${priceSym ?? ''}`.trim() : null
 
   return (
     <>
@@ -29,12 +53,8 @@ export default async function AgentPage({ params }: { params: Promise<{ id: stri
               {a.name ?? <span className="unknown">unnamed agent</span>}
             </h1>
             <p className="num mt-1 text-sm text-ink-faint">
-              agent id {a.agentId} on BNB Smart Chain
-              {a.firstParty === 1 && (
-                <span className="ml-2 rounded-sm border border-warn/50 px-1.5 text-warn">
-                  operated by us
-                </span>
-              )}
+              {reserved ? `reserved id ${a.agentId}, not a registry id` : `agent id ${a.agentId} on BNB Smart Chain`}
+              {ours && <span className="ml-2 rounded-sm border border-warn/50 px-1.5 text-warn">operated by us</span>}
             </p>
           </div>
           <EvidenceBadge rung={a.evidenceTier} className="mt-2" />
@@ -46,22 +66,122 @@ export default async function AgentPage({ params }: { params: Promise<{ id: stri
           <p className="mt-4 unknown">Its registration record carries no description.</p>
         )}
 
+        {ours && (
+          <section className="mt-6 rounded-lg border border-warn/40 bg-panel p-4">
+            <h2 className="text-sm uppercase tracking-wide text-warn">This one is ours, and here is why it exists</h2>
+            <p className="mt-2 max-w-3xl text-sm text-ink-dim">
+              We measured the whole registry against B402 Bazaar, Binance&apos;s index of endpoints where a
+              payment has provably cleared. The intersection of identity and proven revenue on BNB Smart
+              Chain is one agent, its registration record is empty, and it sells image generation. So no
+              agent on the chain was both provably payable and in this category. Rather than ship a shelf
+              nobody can hire from, we run one reference agent per shelf under three conditions: it does
+              real work from live chain reads, it is payable on the same public 402 path as any other
+              listing, and it is labelled ours on every row. Its id is reserved and is not an ERC-8004
+              registry id. The reasoning and the rejected alternatives are in the repository at
+              <span className="num"> docs/decisions/18-the-intersection-is-one-agent.md</span>.
+            </p>
+          </section>
+        )}
+
         <div className="mt-8 grid gap-6 md:grid-cols-3">
           <section className="md:col-span-2 space-y-6">
-            <Card title="What a buyer can act on">
-              <Field label="Price" value={a.priceBase && a.priceDecimals !== null ? `${Number(BigInt(a.priceBase)) / 10 ** a.priceDecimals} ${priceSym ?? ''}` : null} fallback="not quoted" />
-              <Field label="Payment rail" value={a.priceScheme} fallback="none declared" />
-              <Field label="Paid to" value={a.payTo ?? null} fallback="no payout address published" mono />
-              <Field label="In B402 Bazaar" value={a.inBazaar === 1 ? 'yes, a payment has settled' : null} fallback="not listed there" />
-              <Field label="Shelves" value={a.categories.length ? a.categories.map((c) => SHELF_TITLES[c]).join(', ') : null} fallback="matches no shelf contract" />
+            <Card title="Hire">
+              {hireable && ours && spec ? (
+                <>
+                  <p className="text-sm text-ink-dim">
+                    Send a GET to the endpoint. Without payment it answers HTTP 402 with the requirements
+                    below. Sign them once as EIP-712 typed data in USD1, resend with the signature in the
+                    <span className="num"> x-payment</span> header, and the result comes back with the
+                    settlement transaction. No BNB is needed. The capability contract is free at
+                    <span className="num"> ?preview=1</span>.
+                  </p>
+                  <div className="mt-3 rounded-md border border-line bg-canvas p-3">
+                    <div className="text-xs text-ink-faint">Endpoint</div>
+                    <a className="num break-all text-sm text-brand" href={`${PUBLIC_ORIGIN}/api/agent/${a.category}?preview=1`}>
+                      {PUBLIC_ORIGIN}/api/agent/{a.category}
+                    </a>
+                  </div>
+                  <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm md:grid-cols-3">
+                    <Kv k="Price" v={priceHuman} />
+                    <Kv k="Scheme" v={a.priceScheme} />
+                    <Kv k="Network" v="eip155:56" />
+                    <Kv k="Asset" v={a.priceToken} mono />
+                    <Kv k="Amount, atomic" v={a.priceBase} mono />
+                    <Kv k="Pay to" v={a.payTo} mono />
+                  </dl>
+                  <div className="mt-4">
+                    <div className="text-xs text-ink-faint">Inputs</div>
+                    <ul className="mt-1 space-y-1 text-sm">
+                      {spec.inputs.map((i) => (
+                        <li key={i.name} className="flex flex-wrap gap-x-3">
+                          <span className="num text-ink">{i.name}{i.required ? '*' : ''}</span>
+                          <span className="text-ink-dim">{i.description}</span>
+                          <span className="num text-ink-faint">e.g. {i.example}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="mt-3">
+                    <div className="text-xs text-ink-faint">What comes back</div>
+                    <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm text-ink-dim">
+                      {spec.outputs.map((o) => <li key={o}>{o}</li>)}
+                    </ul>
+                  </div>
+                  <div className="mt-3">
+                    <div className="text-xs text-ink-faint">What it reads on chain</div>
+                    <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm text-ink-dim">
+                      {spec.reads.map((r) => <li key={r}>{r}</li>)}
+                    </ul>
+                  </div>
+                  <p className="mt-4 text-xs text-ink-faint">
+                    Settlement through Binance B402 needs a merchant developer account that is granted on
+                    request. This deployment issues the real 402 and verifies the buyer&apos;s signature
+                    locally. The on-chain settle is the step pending that account, which is why this row
+                    is payable and not settled.
+                  </p>
+                </>
+              ) : hireable ? (
+                <>
+                  <p className="text-sm text-ink-dim">
+                    It returned an HTTP 402 with payment requirements when probed, so it is payable.
+                  </p>
+                  {paidProbe && (
+                    <div className="mt-3 rounded-md border border-line bg-canvas p-3">
+                      <div className="text-xs text-ink-faint">The URL that answered 402</div>
+                      <span className="num break-all text-sm text-ink-soft">{paidProbe.url}</span>
+                      {paidProbe.note && <div className="num mt-1 text-xs text-ink-faint">{paidProbe.note}</div>}
+                    </div>
+                  )}
+                  {offChainOnly ? (
+                    <p className="mt-3 text-sm text-warn">
+                      None of its payment options is on BNB Smart Chain, so it cannot be hired in USD1 from
+                      here. Its identity is on BSC. Its rail is elsewhere.
+                    </p>
+                  ) : a.inBazaar === 1 ? (
+                    <p className="mt-3 text-sm text-ink-dim">A payment to its payout address has cleared on chain, which is the settled rung.</p>
+                  ) : (
+                    <p className="mt-3 text-sm text-ink-dim">Pay it directly at that URL with an x402 client. Muster does not broker third-party payments in this release.</p>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-ink-dim">
+                  <span className="text-ink">Not hireable yet.</span> {MISSING[a.evidenceTier]}
+                </p>
+              )}
+              {sibling && (
+                <p className="mt-4 text-sm">
+                  <Link href={`/compare?ids=${a.agentId},${sibling.agentId}`} className="text-brand">
+                    Compare with {sibling.name ?? 'our reference agent'} on this shelf
+                  </Link>
+                </p>
+              )}
             </Card>
 
             <Card title="What it declared, and what that is worth">
               <p className="mb-3 text-xs text-ink-faint">
-                Everything in this block is the operator&apos;s own claim, stored separately from
-                anything we checked. Across the live population almost every agent declares x402
-                support, and our own sample found none payable by a stranger, so a claim here
-                carries no weight on its own.
+                Everything in this block is the operator&apos;s own claim, stored separately from anything we
+                checked. Across the live population 14,211 agents declare x402 support and 3 answered a
+                402 when asked, so a claim here carries no weight on its own.
               </p>
               <Field label="Claims x402 support" value={a.declaresX402 === 1 ? 'yes, unverified' : 'no'} />
               <Field label="Claims to be active" value={a.declaresActive === 1 ? 'yes, unverified' : 'no'} />
@@ -74,11 +194,7 @@ export default async function AgentPage({ params }: { params: Promise<{ id: stri
                   <div className="unknown text-sm">none in its registration record</div>
                 ) : (
                   <ul className="mt-1 space-y-1">
-                    {a.endpoints.map((e) => (
-                      <li key={e} className="num break-all text-sm text-ink-soft">
-                        {e}
-                      </li>
-                    ))}
+                    {a.endpoints.map((e) => <li key={e} className="num break-all text-sm text-ink-soft">{e}</li>)}
                   </ul>
                 )}
               </div>
@@ -87,22 +203,25 @@ export default async function AgentPage({ params }: { params: Promise<{ id: stri
             <Card title="Probe history">
               {probes.length === 0 ? (
                 <p className="unknown text-sm">
-                  Never probed. Until it is, nothing above the declared rung can be claimed.
+                  {ours
+                    ? 'Our own endpoints are not probed by our own cycle. Their 402 is verifiable at the endpoint above.'
+                    : 'Never probed. Until it is, nothing above the declared rung can be claimed.'}
                 </p>
               ) : (
                 <ul className="space-y-2 text-sm">
                   {probes.map((p) => (
-                    <li key={p.probeId} className="flex flex-wrap gap-x-4 gap-y-1">
-                      <span className={p.verdict === 'pass' ? 'text-up' : p.verdict === 'fail' ? 'text-down' : 'text-ink-dim'}>
-                        {p.verdict}
-                      </span>
-                      <span className="text-ink-soft">{p.assertion}</span>
-                      {p.httpStatus !== null && <span className="num text-ink-dim">HTTP {p.httpStatus}</span>}
-                      {p.sawPaymentRequired === 1 && <span className="text-brand">402 with requirements</span>}
-                      {p.failureClass && <span className="text-down">{p.failureClass}</span>}
-                      <span className="ml-auto text-xs text-ink-faint">
-                        {ago(Math.round((Date.now() - p.observedAt) / 1000))}
-                      </span>
+                    <li key={p.probeId} className="border-b border-line-soft pb-2 last:border-0">
+                      <div className="flex flex-wrap gap-x-4 gap-y-1">
+                        <span className={p.verdict === 'pass' ? 'text-up' : p.verdict === 'fail' ? 'text-down' : 'text-ink-dim'}>{p.verdict}</span>
+                        <span className="text-ink-soft">{p.assertion}</span>
+                        {p.httpStatus !== null && <span className="num text-ink-dim">HTTP {p.httpStatus}</span>}
+                        {p.sawPaymentRequired === 1 && <span className="text-brand">402 with requirements</span>}
+                        {p.failureClass && <span className="text-down">{p.failureClass}</span>}
+                        {p.latencyMs !== null && <span className="num text-ink-faint">{p.latencyMs} ms</span>}
+                        <span className="ml-auto text-xs text-ink-faint">{ago(Math.round((Date.now() - p.observedAt) / 1000))}</span>
+                      </div>
+                      <div className="num mt-0.5 break-all text-xs text-ink-faint">{p.url}</div>
+                      {p.note && <div className="num mt-0.5 text-xs text-ink-faint">{p.note}</div>}
                     </li>
                   ))}
                 </ul>
@@ -113,23 +232,37 @@ export default async function AgentPage({ params }: { params: Promise<{ id: stri
           <aside className="space-y-6">
             <Card title="Evidence ladder">
               <EvidenceLadder rung={a.evidenceTier} />
+              {latest && (
+                <p className="mt-3 text-xs text-ink-faint">
+                  Rung {EVIDENCE_ORDER.indexOf(a.evidenceTier) + 1} of 6, last checked {ago(Math.round((Date.now() - latest.observedAt) / 1000))}.
+                </p>
+              )}
             </Card>
-            <Card title="On chain">
-              <Field label="Owner" value={a.owner} mono />
-              <Field label="Payout wallet" value={a.agentWallet} mono fallback="unset" />
-              <Field
-                label="Distinct from owner"
-                value={a.agentWallet && a.agentWallet.toLowerCase() !== a.owner.toLowerCase() ? 'yes' : 'no, it is the holder'}
-              />
-              <Field label="First seen at block" value={a.firstSeenBlock ? num(a.firstSeenBlock) : null} />
-              <Field label="Identical registrations" value={a.clusterSize > 1 ? `${a.clusterSize} agents share this record` : 'unique'} />
+            <Card title={reserved ? 'Operator' : 'On chain'}>
+              {reserved ? (
+                <>
+                  <Field label="Operator" value="Muster, first party" />
+                  <Field label="Payout address" value={a.payTo ?? a.agentWallet} mono fallback="unset" />
+                  <Field label="Registry id" value={null} fallback="none, this id is reserved" />
+                  <p className="mt-3 text-xs text-ink-faint">
+                    A reserved id sits above 900,000,000 and cannot collide with the registry, whose highest
+                    minted id is a few hundred thousand.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <Field label="Owner" value={a.owner} mono />
+                  <Field label="Payout wallet" value={a.agentWallet} mono fallback="unset" />
+                  <Field label="Distinct from owner" value={a.agentWallet && a.agentWallet.toLowerCase() !== a.owner.toLowerCase() ? 'yes' : 'no, it is the holder'} />
+                  <Field label="First seen at block" value={a.firstSeenBlock ? num(a.firstSeenBlock) : null} />
+                  <Field label="Identical registrations" value={a.clusterSize > 1 ? `${a.clusterSize} agents share this record` : 'unique'} />
+                  <div className="mt-3 space-y-1 text-xs">
+                    <a className="block text-brand" href={`https://bscscan.com/token/${REGISTRY.identity}?a=${a.agentId}`} rel="noreferrer noopener" target="_blank">View on BscScan</a>
+                  </div>
+                </>
+              )}
               <div className="mt-3 space-y-1 text-xs">
-                <a className="block text-brand" href={`https://bscscan.com/token/${REGISTRY.identity}?a=${a.agentId}`} rel="noreferrer noopener" target="_blank">
-                  View on BscScan
-                </a>
-                <Link className="block text-brand" href={`/shelf/${a.category}`}>
-                  Back to {SHELF_TITLES[a.category]}
-                </Link>
+                <Link className="block text-brand" href={`/shelf/${a.category}`}>Back to {SHELF_TITLES[a.category]}</Link>
               </div>
             </Card>
           </aside>
@@ -153,11 +286,16 @@ function Field({ label, value, fallback = 'unknown', mono }: { label: string; va
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-x-4 border-b border-line-soft py-1.5 last:border-0">
       <span className="text-xs text-ink-faint">{label}</span>
-      {value ? (
-        <span className={mono ? 'num break-all text-sm text-ink' : 'text-sm text-ink'}>{value}</span>
-      ) : (
-        <span className="unknown text-sm">{fallback}</span>
-      )}
+      {value ? <span className={mono ? 'num break-all text-sm text-ink' : 'text-sm text-ink'}>{value}</span> : <span className="unknown text-sm">{fallback}</span>}
+    </div>
+  )
+}
+
+function Kv({ k, v, mono }: { k: string; v: string | null | undefined; mono?: boolean }) {
+  return (
+    <div>
+      <dt className="text-xs text-ink-faint">{k}</dt>
+      <dd className={v ? (mono ? 'num break-all text-ink' : 'text-ink') : 'unknown'}>{v ?? 'unknown'}</dd>
     </div>
   )
 }
