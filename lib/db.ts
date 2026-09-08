@@ -148,6 +148,26 @@ CREATE TABLE IF NOT EXISTS bazaarPayout (
   observedAt    INTEGER NOT NULL
 );
 
+-- A hire attempt: a buyer signed a real EIP-712 authorization for one of our agents and the
+-- signature recovered to the address it claims. Settlement is a separate step, so this row says
+-- "signed and verified", never "paid". A count of these is a real number for the status page.
+CREATE TABLE IF NOT EXISTS hireAttempt (
+  attemptId     TEXT PRIMARY KEY,
+  shelf         TEXT NOT NULL CHECK (shelf IN ('rebalancing','grid-trading','yield','health-factor')),
+  signer        TEXT NOT NULL,
+  payTo         TEXT NOT NULL,
+  token         TEXT NOT NULL,
+  amountBase    TEXT NOT NULL CHECK (amountBase GLOB '[0-9]*'),
+  nonce         TEXT NOT NULL UNIQUE,
+  validBefore   INTEGER NOT NULL,
+  signatureHash TEXT NOT NULL,
+  signerBalance TEXT,
+  settled       INTEGER NOT NULL DEFAULT 0 CHECK (settled IN (0, 1)),
+  settleTx      TEXT,
+  createdAt     INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS hire_shelf ON hireAttempt (shelf, createdAt);
+
 -- Key/value for sweep resume points and boot assertions. Small on purpose.
 CREATE TABLE IF NOT EXISTS meta (
   k TEXT PRIMARY KEY,

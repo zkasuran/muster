@@ -88,7 +88,13 @@ export default async function AgentPage({ params }: { params: Promise<{ id: stri
             <Card title="Hire">
               {hireable && ours && spec ? (
                 <>
-                  <p className="text-sm text-ink-dim">
+                  <Link
+                    href={`/hire/${a.category}`}
+                    className="inline-block rounded-md bg-brand px-4 py-2 text-sm font-semibold text-canvas"
+                  >
+                    Hire it: see a sample, then sign for {priceHuman ?? 'the price'}
+                  </Link>
+                  <p className="mt-3 text-sm text-ink-dim">
                     Send a GET to the endpoint. Without payment it answers HTTP 402 with the requirements
                     below. Sign them once as EIP-712 typed data in USD1, resend with the signature in the
                     <span className="num"> x-payment</span> header, and the result comes back with the

@@ -78,6 +78,14 @@ export function ListingRow({ l, compareWith }: { l: ListingCard; compareWith?: s
       </dl>
 
       <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+        {l.firstParty === 1 && (l.evidenceTier === 'payable' || l.evidenceTier === 'settled') && (
+          <Link
+            href={`/hire/${l.category}`}
+            className="rounded-sm bg-brand px-2 py-0.5 font-semibold text-canvas"
+          >
+            hire
+          </Link>
+        )}
         {compareWith && compareWith !== l.agentId && (
           <Link
             href={`/compare?ids=${l.agentId},${compareWith}`}

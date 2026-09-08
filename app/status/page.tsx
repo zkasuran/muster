@@ -2,6 +2,7 @@ import { Nav, Footer } from '@/components/nav'
 import { ago, num } from '@/components/fresh'
 import { indexHealth, rungCounts, shelfSummaries, probeSummary, populationFacts } from '@/lib/queries'
 import { cacheState } from '@/lib/cache'
+import { hireStats } from '@/lib/hire'
 import { SHELF_TITLES } from '@/lib/classify'
 import { CHAIN, REGISTRY } from '@/lib/constants'
 
@@ -19,6 +20,7 @@ export default function StatusPage() {
   const probes = probeSummary()
   const pop = populationFacts()
   const caches = cacheState()
+  const hires = hireStats()
   const coverage =
     h.agentsOnChain && h.agentsOnChain > 0
       ? ((h.agentsIndexed / h.agentsOnChain) * 100).toFixed(1)
@@ -71,6 +73,12 @@ export default function StatusPage() {
           <Row label="Passed" value={num(probes.verdicts['pass'] ?? 0)} note="host resolved, TLS completed, an answer came back" />
           <Row label="Failed" value={num(probes.verdicts['fail'] ?? 0)} note={probes.failureClasses.map((f) => `${f.failureClass} ${f.c}`).join(', ') || ''} />
           <Row label="Answered 402 with requirements" value={num(probes.sawPaymentRequired)} note="the payable rung, checked rather than claimed" />
+        </Section>
+
+        <Section title="Hire attempts">
+          <Row label="Signed authorizations verified" value={num(hires.attempts)} note="a real EIP-712 signature that recovered to its signer. Signed, not paid" />
+          <Row label="Distinct signers" value={num(hires.distinctSigners)} note="" />
+          <Row label="Settled" value="0" note="settlement needs a B402 merchant account, granted on request, and none has cleared yet" />
         </Section>
 
         <Section title="The B402 Bazaar join">
