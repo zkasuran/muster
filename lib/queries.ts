@@ -8,7 +8,7 @@
  */
 import { db } from './db.ts'
 import { CHAIN } from './constants.ts'
-import type { EvidenceRung, Shelf, Visibility } from './types.ts'
+import { EVIDENCE_ORDER, type EvidenceRung, type Shelf, type Visibility } from './types.ts'
 
 const CHAIN_ID = CHAIN.id
 
@@ -244,20 +244,93 @@ SELECT l.listingId, l.agentId, l.category, l.evidenceTier, l.visibility,
           AND s.duplicateClusterId = a.duplicateClusterId) AS clusterSize
 FROM listing l JOIN agent a ON a.chainId = l.chainId AND a.agentId = l.agentId`
 
-/** Ordered by how much we know, then by id, so the ordering is explainable in one sentence. */
-export function shelfListings(shelf: Shelf, limit = 60): ListingCard[] {
+export interface ShelfQuery {
+  /** Minimum rung to show. Default shows everything indexed. */
+  minRung?: EvidenceRung
+  /** Only rows a buyer could pay right now. */
+  payable?: boolean
+  /** 'ours', 'third' or undefined for both. */
+  who?: 'ours' | 'third'
+  /** Hide rows that share a registration record with another row. */
+  unique?: boolean
+  /** A substring over name and description. */
+  q?: string
+  sort?: 'rung' | 'probe' | 'name' | 'id' | 'price'
+  limit?: number
+  offset?: number
+}
+
+const RUNG_RANK = `CASE l.evidenceTier WHEN 'settled' THEN 6 WHEN 'payable' THEN 5 WHEN 'probed' THEN 4
+       WHEN 'reachable' THEN 3 WHEN 'declared' THEN 2 ELSE 1 END`
+
+function shelfWhere(shelf: Shelf, f: ShelfQuery): { sql: string; args: unknown[] } {
+  const w: string[] = ["l.chainId = ?", "l.category = ?", "l.visibility IN ('listed','indexed')"]
+  const a: unknown[] = [CHAIN_ID, shelf]
+  if (f.minRung) { w.push(`${RUNG_RANK} >= ?`); a.push(EVIDENCE_ORDER.indexOf(f.minRung) + 1) }
+  if (f.payable) w.push("l.evidenceTier IN ('payable','settled')")
+  if (f.who === 'ours') w.push('l.firstParty = 1')
+  if (f.who === 'third') w.push('l.firstParty = 0')
+  if (f.unique) w.push('(a.duplicateClusterId IS NULL)')
+  if (f.q && f.q.trim()) { w.push("(lower(coalesce(a.name,'')) LIKE ? OR lower(coalesce(a.description,'')) LIKE ?)"); const n = `%${f.q.trim().toLowerCase().slice(0, 80)}%`; a.push(n, n) }
+  return { sql: w.join(' AND '), args: a }
+}
+
+function shelfOrder(sort: ShelfQuery['sort']): string {
+  switch (sort) {
+    case 'probe': return 'l.lastProbeAt IS NULL, l.lastProbeAt DESC, CAST(l.agentId AS INTEGER) ASC'
+    case 'name': return "lower(coalesce(a.name,'zzzz')) ASC, CAST(l.agentId AS INTEGER) ASC"
+    case 'id': return 'CAST(l.agentId AS INTEGER) ASC'
+    case 'price': return 'l.priceBase IS NULL, CAST(l.priceBase AS REAL) ASC, CAST(l.agentId AS INTEGER) ASC'
+    default: return `${RUNG_RANK} DESC, l.firstParty ASC, CAST(l.agentId AS INTEGER) ASC`
+  }
+}
+
+/**
+ * The shelf, filtered and ordered. Default order is by how much is known, then registration
+ * order, so the ordering is explainable in one sentence. Every filter is a plain query
+ * parameter, so the whole facet rail works with scripting off.
+ */
+export function shelfListings(shelf: Shelf, f: ShelfQuery | number = {}): ListingCard[] {
+  const q: ShelfQuery = typeof f === 'number' ? { limit: f } : f
+  const { sql, args } = shelfWhere(shelf, q)
   return many<ListingCard>(
     `${CARD_SELECT}
-     WHERE l.chainId = ? AND l.category = ? AND l.visibility IN ('listed','indexed')
-     ORDER BY CASE l.evidenceTier
-       WHEN 'settled' THEN 6 WHEN 'payable' THEN 5 WHEN 'probed' THEN 4
-       WHEN 'reachable' THEN 3 WHEN 'declared' THEN 2 ELSE 1 END DESC,
-       l.firstParty ASC, CAST(l.agentId AS INTEGER) ASC
-     LIMIT ?`,
-    CHAIN_ID,
-    shelf,
-    limit,
+     WHERE ${sql}
+     ORDER BY ${shelfOrder(q.sort)}
+     LIMIT ? OFFSET ?`,
+    ...args,
+    Math.min(q.limit ?? 60, 200),
+    q.offset ?? 0,
   )
+}
+
+export function shelfCount(shelf: Shelf, f: ShelfQuery = {}): number {
+  const { sql, args } = shelfWhere(shelf, f)
+  return one<{ c: number }>(`SELECT COUNT(*) c FROM listing l JOIN agent a ON a.chainId = l.chainId AND a.agentId = l.agentId WHERE ${sql}`, ...args)?.c ?? 0
+}
+
+/**
+ * The row a buyer could pay here, on each shelf. "Payable" is a rung, "hireable here" is
+ * stricter: it also needs a price in a token this marketplace quotes on BSC. A 402 whose options
+ * are all on other networks is payable somewhere and not here, and the landing must not call it
+ * hireable. Ours if that is all there is, and the panel says so.
+ */
+export function topHireablePerShelf(): { shelf: Shelf; card: ListingCard | null }[] {
+  const shelves: Shelf[] = ['rebalancing', 'grid-trading', 'yield', 'health-factor']
+  return shelves.map((shelf) => ({
+    shelf,
+    card: shelfListings(shelf, { payable: true, limit: 8 }).find((c) => c.priceBase !== null && c.priceToken !== null) ?? null,
+  }))
+}
+
+/** The last probes, for a live strip on the landing page. Real rows, never a fixture. */
+export function recentProbes(limit = 8): { agentId: string; name: string | null; category: Shelf; verdict: string; httpStatus: number | null; sawPaymentRequired: number; observedAt: number; host: string }[] {
+  return many<{ agentId: string; name: string | null; category: Shelf; verdict: string; httpStatus: number | null; sawPaymentRequired: number; observedAt: number; url: string }>(
+    `SELECT p.agentId, a.name, l.category, p.verdict, p.httpStatus, p.sawPaymentRequired, p.observedAt, p.url
+     FROM probeResult p JOIN listing l ON l.listingId = p.listingId JOIN agent a ON a.chainId = l.chainId AND a.agentId = l.agentId
+     ORDER BY p.observedAt DESC LIMIT ?`,
+    limit,
+  ).map((r) => ({ ...r, host: (() => { try { return new URL(r.url).hostname } catch { return r.url } })() }))
 }
 
 export interface AgentDetail extends ListingCard {

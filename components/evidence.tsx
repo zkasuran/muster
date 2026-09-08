@@ -75,3 +75,24 @@ export function EvidenceLadder({ rung }: { rung: EvidenceRung }) {
     </ol>
   )
 }
+
+/**
+ * The six-segment rung bar. Filled segments are what has been checked, empty ones are what has
+ * not, so a row's standing is visible at a glance before a single word is read. Used on every
+ * listing row, on compare and on the agent header.
+ */
+export function RungBar({ rung, size = 'sm' }: { rung: EvidenceRung; size?: 'sm' | 'md' }) {
+  const reached = EVIDENCE_ORDER.indexOf(rung)
+  const h = size === 'md' ? 'h-2.5 w-8' : 'h-1.5 w-5'
+  return (
+    <span className="inline-flex items-center gap-1" title={`${LABEL[rung]}, rung ${reached + 1} of 6`} aria-label={`${LABEL[rung]}, rung ${reached + 1} of 6`}>
+      {EVIDENCE_ORDER.map((r, i) => (
+        <span
+          key={r}
+          aria-hidden
+          className={cn(h, 'rounded-sm', i <= reached ? (i >= 4 ? 'bg-brand' : 'bg-ink-soft') : 'bg-line')}
+        />
+      ))}
+    </span>
+  )
+}

@@ -46,9 +46,9 @@
   --radius-md: 8px;
   --radius-lg: 16px;
 
-  --font-display: "Instrument Serif", ui-serif, Georgia, serif;
-  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-display: var(--font-display-loaded), "Instrument Serif", ui-serif, Georgia, serif;
+  --font-sans: var(--font-sans-loaded), "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono-loaded), "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 html {
@@ -93,3 +93,14 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* The one gradient on the site, behind the landing hero. The kit allows a field in a hero and
+   nowhere else, and this one is a darkening rather than a glow: no colour is added. */
+.hero-field {
+  background:
+    radial-gradient(1200px 520px at 20% 0%, rgba(240, 185, 11, 0.07), transparent 60%),
+    radial-gradient(900px 400px at 90% 10%, rgba(255, 255, 255, 0.025), transparent 60%);
+}
+/* A proportion bar, CSS only, so it reads with scripting off. */
+.bar { height: 6px; background: var(--color-line); border-radius: 3px; overflow: hidden; }
+.bar > span { display: block; height: 100%; background: var(--color-brand); }

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { EvidenceBadge } from './evidence'
+import { EvidenceBadge, RungBar } from './evidence'
 import { ago } from './fresh'
 import type { ListingCard } from '@/lib/queries'
 import { TOKENS } from '@/lib/constants'
@@ -43,7 +43,10 @@ export function ListingRow({ l, compareWith }: { l: ListingCard; compareWith?: s
             )}
           </div>
         </div>
-        <EvidenceBadge rung={l.evidenceTier} />
+        <div className="flex flex-col items-end gap-1.5">
+          <EvidenceBadge rung={l.evidenceTier} />
+          <RungBar rung={l.evidenceTier} />
+        </div>
       </div>
 
       {l.description ? (
@@ -111,5 +114,39 @@ export function ListingRow({ l, compareWith }: { l: ListingCard; compareWith?: s
         )}
       </div>
     </li>
+  )
+}
+
+
+/** The dense view: one line per agent, for scanning sixty rows without scrolling a wall of cards. */
+export function ListingTr({ l, compareWith }: { l: ListingCard; compareWith?: string }) {
+  const price = priceLabel(l)
+  return (
+    <tr className="border-b border-line-soft align-top hover:bg-panel-2">
+      <td className="py-2.5 pr-3">
+        <Link href={`/agent/${l.agentId}`} className="text-ink hover:text-brand">
+          {l.name ?? <span className="unknown">unnamed</span>}
+        </Link>
+        <div className="num text-xs text-ink-faint">
+          {l.agentId}
+          {l.firstParty === 1 && <span className="ml-2 rounded-sm border border-warn/50 px-1 text-warn">ours</span>}
+          {l.clusterSize > 1 && <span className="ml-2">×{l.clusterSize}</span>}
+        </div>
+      </td>
+      <td className="py-2.5 pr-3"><RungBar rung={l.evidenceTier} /><div className="mt-0.5 text-xs text-ink-dim">{l.evidenceTier}</div></td>
+      <td className={`py-2.5 pr-3 ${price ? 'num text-ink' : 'unknown'}`}>{price ?? 'not quoted'}</td>
+      <td className={`py-2.5 pr-3 text-xs ${l.priceScheme ? 'text-ink' : 'unknown'}`}>{l.priceScheme ?? 'none'}</td>
+      <td className="num py-2.5 pr-3 text-ink">{l.endpointCount}</td>
+      <td className={`py-2.5 pr-3 text-xs ${l.lastProbeAt ? (l.lastProbeVerdict === 'pass' ? 'text-up' : 'text-down') : 'unknown'}`}>
+        {l.lastProbeAt ? `${l.lastProbeVerdict} ${ago(Math.round((Date.now() - l.lastProbeAt) / 1000))}` : 'never'}
+      </td>
+      <td className="py-2.5 text-xs">
+        {l.firstParty === 1 && (l.evidenceTier === 'payable' || l.evidenceTier === 'settled') ? (
+          <Link href={`/hire/${l.category}`} className="rounded-sm bg-brand px-2 py-0.5 font-semibold text-canvas">hire</Link>
+        ) : compareWith && compareWith !== l.agentId ? (
+          <Link href={`/compare?ids=${l.agentId},${compareWith}`} className="text-ink-soft hover:text-brand">compare</Link>
+        ) : null}
+      </td>
+    </tr>
   )
 }

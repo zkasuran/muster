@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Nav, Footer } from '@/components/nav'
-import { EvidenceBadge, EvidenceLadder } from '@/components/evidence'
+import { EvidenceBadge, EvidenceLadder, RungBar } from '@/components/evidence'
 import { ago, num } from '@/components/fresh'
 import { agentDetail, probeHistory, firstPartyOnShelf } from '@/lib/queries'
 import { SHELF_TITLES } from '@/lib/classify'
@@ -57,7 +57,10 @@ export default async function AgentPage({ params }: { params: Promise<{ id: stri
               {ours && <span className="ml-2 rounded-sm border border-warn/50 px-1.5 text-warn">operated by us</span>}
             </p>
           </div>
-          <EvidenceBadge rung={a.evidenceTier} className="mt-2" />
+          <div className="mt-2 flex flex-col items-end gap-2">
+            <EvidenceBadge rung={a.evidenceTier} />
+            <RungBar rung={a.evidenceTier} size="md" />
+          </div>
         </div>
 
         {a.description ? (

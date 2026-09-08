@@ -15,10 +15,19 @@ const sans = Geist({ subsets: ['latin'], variable: '--font-sans-loaded', display
 const mono = Geist_Mono({ subsets: ['latin'], variable: '--font-mono-loaded', display: 'swap' })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.MUSTER_ORIGIN_URL ?? 'https://muster.zkasuran.dev'),
   title: { default: 'Muster', template: '%s · Muster' },
   description:
     'Find, compare and hire a live ERC-8004 agent on BNB Smart Chain, in one place.',
   applicationName: 'Muster',
+  icons: { icon: '/favicon.svg' },
+  openGraph: {
+    title: 'Muster',
+    description: 'Find, compare and hire a live ERC-8004 agent on BNB Smart Chain. Every row carries how much is actually known about it.',
+    url: '/',
+    siteName: 'Muster',
+    type: 'website',
+  },
   robots: { index: true, follow: true },
 }
 
