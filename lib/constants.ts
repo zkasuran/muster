@@ -155,3 +155,29 @@ export const PINNED_DOMAIN_SEPARATOR: Record<keyof typeof TOKENS, string | null>
   USDT: null,
   USDC: null,
 }
+
+/**
+ * [doc 11] The canonical EIP-1967 implementation slot,
+ * keccak256("eip1967.proxy.implementation") - 1. A proxy holds no dispatch table, so feature
+ * detection has to read the implementation behind the slot rather than the proxy address. /stack
+ * reads this slot live on the registries and the tokens each render, so an upgrade is visible
+ * rather than silent.
+ */
+export const EIP1967_IMPL_SLOT =
+  '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc' as const
+
+/**
+ * The implementation behind each proxy, read 2026-09-09 at block 120,818,051. A live read that
+ * differs from the pin below means the proxy was upgraded, which could change the meaning of every
+ * record read through it, including the counter slot the whole enumeration rests on. USDT is a
+ * plain token, not an EIP-1967 proxy, so its slot reads empty and there is nothing to pin, which is
+ * shown as unknown rather than as a zero address.
+ */
+export const PINNED_IMPL: Record<string, string | null> = {
+  identity: '0x7274e874CA62410a93Bd8bf61c69d8045E399c02',
+  reputation: '0x16e0FA7f7C56B9a767E34B192B51f921BE31dA34',
+  U: '0xbef21313C69c009fD7D9510A8d3A481a32473DFC',
+  USD1: '0x694Aa534bdef8eD63244eB902E7914e527891F08',
+  USDT: null,
+  USDC: '0xBA5Fe23f8a3a24BEd3236F05F2FcF35fd0BF0B5C',
+}

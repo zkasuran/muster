@@ -1,6 +1,6 @@
 import { Nav, Footer } from '@/components/nav'
 import { ago, num } from '@/components/fresh'
-import { endpointCapability, tokenFacts } from '@/lib/stack'
+import { endpointCapability, tokenFacts, proxyFingerprints } from '@/lib/stack'
 import { CHAIN } from '@/lib/constants'
 
 export const dynamic = 'force-dynamic'
@@ -17,7 +17,11 @@ export const metadata = {
  * pinned one is flagged, because that is how an upgrade or a token change becomes visible.
  */
 export default async function StackPage() {
-  const [endpoints, tokens] = await Promise.all([endpointCapability(), tokenFacts()])
+  const [endpoints, tokens, proxies] = await Promise.all([
+    endpointCapability(),
+    tokenFacts(),
+    proxyFingerprints(),
+  ])
 
   return (
     <>
@@ -96,6 +100,38 @@ export default async function StackPage() {
           ))}
         </Section>
 
+        <Section
+          title="Proxy implementations, the upgrade watch"
+          note={
+            proxies.block
+              ? `The EIP-1967 implementation slot on each proxy, read at block ${proxies.block.toLocaleString()}, ${ago(Math.round((Date.now() - proxies.readAt) / 1000))}. The registries can be replaced by their upgrade key, which would change what every record read through them means. A live implementation off its pin is flagged here.`
+              : 'no endpoint answered, so every implementation below is unknown'
+          }
+        >
+          {proxies.proxies.map((p) => (
+            <div key={p.key} className="border-b border-line-soft py-3 last:border-0">
+              <div className="flex flex-wrap items-baseline justify-between gap-x-4">
+                <span className="text-sm text-ink">{p.label}</span>
+                <span className="num text-xs text-ink-faint">{p.address}</span>
+              </div>
+              <div className="mt-1 flex flex-wrap items-baseline gap-x-2 text-xs">
+                <span className="text-ink-faint">implementation</span>
+                {p.impl === null ? (
+                  <span className="unknown">{p.isProxy ? 'unknown' : 'not an EIP-1967 proxy, no implementation slot'}</span>
+                ) : (
+                  <>
+                    <span className="num text-ink-dim">{p.impl}</span>
+                    {p.matchesPinned === true && <span className="text-up">matches the pinned implementation</span>}
+                    {p.matchesPinned === false && <span className="text-down">differs from the pinned implementation, the proxy was upgraded</span>}
+                    {p.matchesPinned === null && p.implPinned === null && <span className="text-ink-faint">read live, no pin to compare</span>}
+                  </>
+                )}
+              </div>
+              {p.error && <p className="mt-1 num text-xs text-warn">{p.error}</p>}
+            </div>
+          ))}
+        </Section>
+
         <Section title="Reproduce it" note="Every value on this page is one call anyone can run.">
           <pre className="num mt-1 overflow-x-auto rounded-md border border-line bg-canvas p-3 text-xs text-ink-soft">
 {`# chain id, expected ${CHAIN.id}
@@ -107,7 +143,12 @@ cast call 0xcE24439F2D9C6a2289F741120FE202248B666666 \\
 
 # its EIP-712 domain separator, matched against the value the hire path signs under
 cast call 0xcE24439F2D9C6a2289F741120FE202248B666666 \\
-  "DOMAIN_SEPARATOR()(bytes32)" --rpc-url https://bsc-rpc.publicnode.com`}
+  "DOMAIN_SEPARATOR()(bytes32)" --rpc-url https://bsc-rpc.publicnode.com
+
+# the implementation behind a registry proxy, so an upgrade shows up
+cast storage 0x8004A169FB4a3325136EB29fA0ceB6D2e539a432 \\
+  0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc \\
+  --rpc-url https://bsc-rpc.publicnode.com`}
           </pre>
         </Section>
       </main>
