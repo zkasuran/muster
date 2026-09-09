@@ -24,13 +24,16 @@
   --color-canvas: #0B0E11;
   --color-paper: #FFFFFF;
 
-  /* Ours: the surface and ink scale, dark because the brand canvas is dark. */
-  --color-panel: #15191E;
-  --color-panel-2: #1B2027;
-  --color-line: #252B33;
-  --color-line-soft: #1C2128;
-  --color-ink: #E9EDF2;
-  --color-ink-soft: #B9C2CE;
+  /* Ours: the surface and ink scale, dark because the brand canvas is dark. The three
+     surfaces step in value on purpose (canvas 0B0E11 < panel < panel-2) so a card lifts
+     off the page by its fill rather than by a shadow, which the kit forbids. The border
+     is bright enough to read as an edge against the panel it sits on. */
+  --color-panel: #171C23;
+  --color-panel-2: #1E242D;
+  --color-line: #2E3641;
+  --color-line-soft: #232A33;
+  --color-ink: #EEF2F7;
+  --color-ink-soft: #BFC8D4;
   --color-ink-dim: #8B97A6;
   --color-ink-faint: #5A6472;
 
@@ -101,6 +104,19 @@ body {
     radial-gradient(1200px 520px at 20% 0%, rgba(240, 185, 11, 0.07), transparent 60%),
     radial-gradient(900px 400px at 90% 10%, rgba(255, 255, 255, 0.025), transparent 60%);
 }
-/* A proportion bar, CSS only, so it reads with scripting off. */
-.bar { height: 6px; background: var(--color-line); border-radius: 3px; overflow: hidden; }
-.bar > span { display: block; height: 100%; background: var(--color-brand); }
+/* A proportion bar, CSS only, so it reads with scripting off. The track sits on the raised
+   surface value so the fill has something to read against, and the fill carries a rounded
+   data-end anchored to the baseline. */
+.bar { height: 8px; background: var(--color-line-soft); border-radius: 4px; overflow: hidden; }
+.bar > span { display: block; height: 100%; background: var(--color-brand); border-radius: 4px; min-width: 4px; }
+
+/* A section heading, so hierarchy is a rule rather than a per-page guess. The display serif
+   at a real size, with a short brand rule leading it so a judge's eye lands on the section. */
+.section-head { font-family: var(--font-display); font-size: 1.9rem; line-height: 1.1; letter-spacing: -0.01em; }
+.rule-lead { position: relative; padding-left: 0.85rem; }
+.rule-lead::before { content: ""; position: absolute; left: 0; top: 0.15em; bottom: 0.15em; width: 3px; border-radius: 2px; background: var(--color-brand); }
+
+/* A card lifts by fill and a readable edge, never a shadow, and its edge warms toward the
+   ink on hover so the surface feels responsive without motion. */
+.card { background: var(--color-panel); border: 1px solid var(--color-line); border-radius: var(--radius-lg); transition: border-color 0.15s ease, background-color 0.15s ease; }
+.card:hover { border-color: var(--color-ink-dim); background: var(--color-panel-2); }
