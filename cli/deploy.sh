@@ -38,23 +38,13 @@ echo "==> ship"
 rsync -az --delete -e "ssh -o BatchMode=yes" "$STAGE/" "$ORIGIN:$REMOTE_DIR/"
 ssh -o BatchMode=yes "$ORIGIN" "systemctl restart muster-web && sleep 3 && systemctl is-active muster-web"
 
-echo "==> refresh the static fallback from the live app"
-# Every path the submission can cite, rendered flat, so the fallback is the real site
-# rather than a placeholder. Run after the app is confirmed healthy.
-ssh -o BatchMode=yes "$ORIGIN" "bash -s" <<'REMOTE'
-set -euo pipefail
-command -v wget >/dev/null || { DEBIAN_FRONTEND=noninteractive apt-get install -y wget >/dev/null 2>&1; }
-TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
-wget --quiet --mirror --page-requisites --adjust-extension --convert-links \
-     --no-host-directories --directory-prefix="$TMP" \
-     --header 'X-Static-Export: 1' http://127.0.0.1:3000/ || true
-if [ -f "$TMP/index.html" ]; then
-  rsync -a --delete "$TMP/" /var/www/muster-static/
-  echo "    static export refreshed, $(find /var/www/muster-static -type f | wc -l) files"
-else
-  echo "    WARNING: crawl produced no index.html, leaving the previous export in place"
-fi
-REMOTE
+echo "==> refresh the static fallback from the live app, detached"
+# Every path the submission can cite, rendered flat, so the fallback is the real site rather
+# than a placeholder. The crawl covers every agent page and takes longer than an SSH session
+# reliably lasts, and a dropped session once left an orphaned crawl and an unrefreshed export.
+# So it runs under setsid on the origin and logs to /var/log/muster-static-refresh.log.
+scp -q -o BatchMode=yes deploy/refresh-static.sh "$ORIGIN:/root/refresh-static.sh"
+ssh -o BatchMode=yes "$ORIGIN" "chmod +x /root/refresh-static.sh; pkill -x wget >/dev/null 2>&1; setsid nohup /root/refresh-static.sh >> /var/log/muster-static-refresh.log 2>&1 < /dev/null & disown; echo '    started, tail /var/log/muster-static-refresh.log on the origin for the result'"
 
 echo "==> gate: anonymous fetch must be 200"
 code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 25 "https://$HOST/")

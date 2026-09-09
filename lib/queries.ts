@@ -110,6 +110,8 @@ export interface ShelfSummary {
   indexed: number
   /** Rows at `payable` or better, which is the only count that means hireable. */
   hireable: number
+  /** How many of those are our own reference agents, so the count never mixes our supply in silently. */
+  hireableOurs: number
   bestRung: EvidenceRung | null
 }
 
@@ -132,6 +134,12 @@ export function shelfSummaries(): ShelfSummary[] {
       CHAIN_ID,
       shelf,
     )
+    const hireableOurs = one<{ c: number }>(
+      `SELECT COUNT(*) c FROM listing WHERE chainId = ? AND category = ?
+       AND evidenceTier IN ('payable','settled') AND firstParty = 1`,
+      CHAIN_ID,
+      shelf,
+    )
     const best = one<{ evidenceTier: EvidenceRung }>(
       `SELECT evidenceTier FROM listing WHERE chainId = ? AND category = ?
        ORDER BY CASE evidenceTier
@@ -145,6 +153,7 @@ export function shelfSummaries(): ShelfSummary[] {
       listed: listed?.c ?? 0,
       indexed: indexed?.c ?? 0,
       hireable: hireable?.c ?? 0,
+      hireableOurs: hireableOurs?.c ?? 0,
       bestRung: best?.evidenceTier ?? null,
     }
   })

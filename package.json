@@ -13,7 +13,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit -p tsconfig.check.json",
-    "test": "node --test worker/**/*.test.ts lib/**/*.test.ts",
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test worker/**/*.test.ts lib/**/*.test.ts",
     "check": "npm run typecheck && npm run lint && npm run test",
     "sweep": "node --experimental-strip-types worker/sweep.ts",
     "probe": "node --experimental-strip-types worker/probe.ts",

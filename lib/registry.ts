@@ -222,7 +222,7 @@ export async function resolveAgents(ids: bigint[]): Promise<ResolvedAgent[]> {
         registration: parseRegistration(tokenUri),
       }
     })
-  })
+  }, { bulk: true })
 }
 
 /** Enumerate registrations from logs, because the registry is not enumerable. */

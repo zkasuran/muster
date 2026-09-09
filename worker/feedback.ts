@@ -32,6 +32,7 @@ export async function sweepFeedback(): Promise<{ agents: number; withFeedback: n
         contracts: batch.map((id) => ({ address: REGISTRY.reputation as `0x${string}`, abi: REP_ABI, functionName: 'getClients', args: [BigInt(id)] } as const)),
         allowFailure: true,
       }),
+      { bulk: true },
     )
     const summaries = await withRpc((c) =>
       c.multicall({
@@ -41,6 +42,7 @@ export async function sweepFeedback(): Promise<{ agents: number; withFeedback: n
         }),
         allowFailure: true,
       }),
+      { bulk: true },
     )
     tx(() => {
       batch.forEach((id, j) => {

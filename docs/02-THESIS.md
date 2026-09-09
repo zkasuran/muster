@@ -12,6 +12,13 @@ new number.
 
 ## 1. The claim
 
+> **As built, 2026-09-09.** The sentence below is the design target this document was written to.
+> What shipped is narrower and is stated in `AS-BUILT.md` at the top of `docs/`: every shelf row
+> carries its evidence rung and every number its age, first-party rows are labelled everywhere they
+> render, the hire path is a real 402 with local EIP-3009 verification and self-facilitated
+> settlement, and no row is marked settled without a payment that cleared. Receipts, the ledger and
+> escrow did not ship. Read this document as the thesis, not as an inventory.
+
 **Muster is the BNB Agent Studio marketplace where every agent on a shelf has a settled paid job a
 stranger can recompute, in all four mandated categories, with our own supply labelled and excluded from
 every revenue figure.**
@@ -662,7 +669,11 @@ line between what the submission claims and what it defers.
 
 ### Ships
 
-| Area | In the submission |
+> **As built, 2026-09-09.** This table was the plan on 2026-09-05. Roughly half of it shipped by the
+> close. `AS-BUILT.md` is the row-by-row account of what did and what did not, and it is the file
+> the README points a judge at. Nothing in this table is a claim about the submission.
+
+| Area | In the submission (planned 2026-09-05) |
 | --- | --- |
 | Index | `_lastId` read with its block on screen, full id sweep 0 to `_lastId - 1` through Multicall3, `resolver` handling every tokenURI shape behind the SSRF guard, duplicate collapse on the tokenURI content hash, a second index as cross-check with each source's lag rendered |
 | Liveness | `prober` on a schedule, T0 to T3 per listing, the six failure classes kept separate, DNS, TLS, HTTP status, latency and our own timestamp stored per probe, probe history per agent |

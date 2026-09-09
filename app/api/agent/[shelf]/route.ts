@@ -9,7 +9,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { findAgent, BadRequest, FIRST_PARTY } from '@/lib/agents'
-import { build402, verifyPayment, settlePayment } from '@/lib/b402'
+import { build402, verifyPayment, settlePayment, paymentRequiredHeaders } from '@/lib/b402'
 import { verifyEip3009Envelope } from '@/lib/x402-local'
 import { settleEip3009, facilitatorState, markSettled } from '@/lib/settle'
 import { TOKENS } from '@/lib/constants'
@@ -78,7 +78,8 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ shelf: stri
     return NextResponse.json(contractOf(shelf), { status: 200 })
   }
 
-  const header = req.headers.get('x-payment')
+  // v2 transport name first, then the v1 name, because live BSC clients still send the latter.
+  const header = req.headers.get('payment-signature') ?? req.headers.get('x-payment')
 
   if (!header) {
     if (!PAY_TO) {
@@ -104,7 +105,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ shelf: stri
     })
     return NextResponse.json(challenge.body, {
       status: 402,
-      headers: { 'cache-control': 'no-store' },
+      headers: paymentRequiredHeaders(challenge.body),
     })
   }
 
@@ -114,7 +115,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ shelf: stri
   try {
     envelope = JSON.parse(Buffer.from(header, 'base64').toString('utf8'))
   } catch {
-    return NextResponse.json({ error: 'x-payment header is not base64 JSON' }, { status: 400 })
+    return NextResponse.json({ error: 'payment header is not base64 JSON' }, { status: 400 })
   }
 
   // Two settlement paths, tried in order. Binance B402 when a merchant account is configured.
@@ -160,7 +161,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ shelf: stri
         payment: { transaction: settledTx, scheme: 'eip3009', token: 'USD1', settledVia: via },
         result,
       },
-      { status: 200, headers: { 'x-payment-response': Buffer.from(JSON.stringify({ transaction: settledTx, via })).toString('base64') } },
+      { status: 200, headers: { 'PAYMENT-RESPONSE': Buffer.from(JSON.stringify({ success: true, transaction: settledTx, network: 'eip155:56', via })).toString('base64'), 'x-payment-response': Buffer.from(JSON.stringify({ success: true, transaction: settledTx, network: 'eip155:56', via })).toString('base64') } },
     )
   } catch (e) {
     if (e instanceof BadRequest) {

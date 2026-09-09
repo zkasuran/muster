@@ -59,11 +59,30 @@ export function HireWidget({ shelf, price }: { shelf: string; price: string }) {
       const from = accounts[0]
       if (!from) throw new Error('the wallet returned no account')
       setAccount(from)
-      // Chain 56. A wallet on another chain would sign a domain that no contract honours.
+      // Chain 56. A wallet on another chain would sign a domain that no contract honours. A wallet
+      // that has never added BNB Smart Chain answers the switch with EIP-3085 code 4902, so it is
+      // added first, then the switch is retried, before asking the human to do anything by hand.
+      const switchTo56 = () => provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x38' }] })
       try {
-        await provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x38' }] })
-      } catch {
-        throw new Error('please switch the wallet to BNB Smart Chain (chain id 56) and try again')
+        await switchTo56()
+      } catch (err) {
+        const code = (err as { code?: number } | null)?.code
+        if (code !== 4902) throw new Error('please switch the wallet to BNB Smart Chain (chain id 56) and try again')
+        try {
+          await provider.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: '0x38',
+              chainName: 'BNB Smart Chain',
+              nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 },
+              rpcUrls: ['https://bsc-dataseed.bnbchain.org'],
+              blockExplorerUrls: ['https://bscscan.com'],
+            }],
+          })
+          await switchTo56()
+        } catch {
+          throw new Error('BNB Smart Chain (chain id 56) is not in this wallet and could not be added, add it and try again')
+        }
       }
 
       setStep('offer')

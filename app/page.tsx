@@ -158,6 +158,14 @@ export default function Home() {
               })}
             </ul>
             <p className="mt-3 text-xs text-ink-faint">A registration record is a claim. It sits two rungs below a payment that cleared.</p>
+            {rungs.settled === 0 ? (
+              <p className="mt-2 text-xs text-ink-faint">
+                Settled reads 0 because no payment has cleared through Muster yet. Each hire is a real EIP-3009
+                authorization that Muster verifies itself and submits from its own key, paying the gas. Whether that key
+                can pay gas right now is on the <Link href="/status" className="underline">status page</Link>, and a row
+                is never marked settled without a transaction hash.
+              </p>
+            ) : null}
           </div>
           <div>
             <h2 className="font-display text-2xl">Last probes</h2>

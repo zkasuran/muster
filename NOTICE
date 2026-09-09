@@ -6,8 +6,8 @@ our work only. Every third-party component below keeps its own terms, which
 govern those portions.
 
 The clause-by-clause record, with the exact granting sentence quoted for each source, is in
-`docs/10-DOCS-AND-POLICY.md`. This file is the short list a reader needs before running or
-reading the code.
+`DATA-SOURCES.md`, with the reasoning in `docs/10-DOCS-AND-POLICY.md`. This file is the short
+list a reader needs before running or reading the code.
 
 ## Bundled components
 
@@ -24,23 +24,30 @@ MIT requires this notice to travel with any copy, so the full licence text is re
 
 Node 22 ships `node:sqlite`, so the store adds no third-party driver and no extra grant.
 
+## Fonts
+
+Self-hosted by `next/font`, each under the SIL Open Font License 1.1, whose condition 2 asks that
+every copy carry the copyright notice and the licence. The three licence files are at
+`public/licenses/` and are served by the live site.
+
+* **Instrument Serif**, Copyright 2022 The Instrument Serif Project Authors
+  (https://github.com/Instrument/instrument-serif).
+* **Geist** and **Geist Mono**, Copyright 2024 The Geist Project Authors
+  (https://github.com/vercel/geist-font.git).
+
 ## Data sources read at runtime
 
-Each is read, never redistributed in bulk. Terms and the quoted grant per source are in
-`docs/10-DOCS-AND-POLICY.md`.
+Each is read, never redistributed in bulk. The quoted grant per source is in `DATA-SOURCES.md`.
 
 * **ERC-8004 Identity and Reputation Registries** on BNB Smart Chain, read directly over
   JSON-RPC. Public chain state.
-* **8004scan** developer API, operated by AltLayer, used as a cross-check index under its own
-  terms of service.
-* **B402 Bazaar**, operated by Binance, read through its public unauthenticated endpoints.
-* **Binance x402 (B402)** payment APIs, used under the terms attached to a merchant
-  developer account.
-* **Venus Protocol** and **Lista DAO** contracts on BNB Smart Chain, read over JSON-RPC.
-* **PancakeSwap** contracts and data endpoints on BNB Smart Chain.
-* Public BSC RPC endpoints, each under its operator's terms. Where an operator's terms
-  restrict automated collection, that restriction is recorded against the endpoint in
-  `docs/10-DOCS-AND-POLICY.md` and honoured in `worker/`.
+* **Venus Protocol** and **PancakeSwap v3** contracts on BNB Smart Chain, read over JSON-RPC
+  through ABIs we declare. No source from either project is in this tree.
+* **B402 Bazaar**, operated by Binance, read through its public unauthenticated endpoints and
+  shown as counts and one joined row, never as a catalogue.
+* Public BSC RPC endpoints, each under its operator's terms. Bulk reads go only to the endpoints
+  BNB Chain publishes for programs, at the rate it states. PublicNode's terms restrict automated
+  collection, so it carries single reads only. The split is in `lib/rpc.ts`.
 
 ## Marks
 

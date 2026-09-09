@@ -60,7 +60,7 @@ export default async function StatusPage() {
               key={s.shelf}
               label={SHELF_TITLES[s.shelf]}
               value={`${s.listed} listed, ${s.indexed} indexed`}
-              note={s.hireable > 0 ? `${s.hireable} payable or better` : 'none payable yet'}
+              note={s.hireable > 0 ? `${s.hireable} payable or better${s.hireableOurs > 0 ? `, ${s.hireableOurs === s.hireable ? (s.hireable === 1 ? 'that one is ours' : 'all ours') : `${s.hireableOurs} ours`}` : ', none ours'}` : 'none payable yet'}
             />
           ))}
         </Section>

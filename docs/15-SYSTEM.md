@@ -856,10 +856,13 @@ runs on capacity that already exists and the one line that does need money is is
 
 ### 6.2 The public URL
 
-`https://muster.brainonbnb.com`, a subdomain of a domain we already control. That domain already serves
-`/.well-known/agent-registration.json` over HTTPS with a 200, `application/json`,
-`Access-Control-Allow-Origin: *` and `cache-control: public, max-age=300` (`R12-agent-comms.md`), so the
-apex is proven rather than assumed and the subdomain needs one DNS record plus one certificate issuance.
+**Corrected 2026-09-06, deployed 2026-09-06.** The live URL is `https://muster.zkasuran.dev`. The
+first draft of this section named `muster.brainonbnb.com`, on the belief that the apex was ours.
+`decisions/02-thesis-brainonbnb-is-third-party.md` overturned that: the owner address behind that
+domain has no signer in this workspace, so it belongs to a rival and cannot carry our submission.
+`14-GAPS-CRITIQUE.md` item 3 records the finding. `zkasuran.dev` is a domain we control, the
+subdomain took one DNS record at a 300 second TTL plus one Let's Encrypt issuance, and the
+certificate reads `notAfter` 2026-12-04, past the last judging day.
 
 The certificate has to match the exact hostname served. The reference failure is in our own research:
 `clawnews.io` resolves, redirects correctly and serves a certificate for `*.up.railway.app`, so every
@@ -873,7 +876,7 @@ so a failed renewal inside the window surfaces as a red run instead of as a dead
 carries a **300 second TTL**, so the origin can move inside an hour without editing a URL that has already
 been submitted.
 
-The cited URL stays `muster.brainonbnb.com`. `14-GAPS.md` puts the pre-rendered fallback at the apex, which
+The cited URL is `muster.zkasuran.dev` and nothing else. `14-GAPS.md` puts the pre-rendered fallback at the apex, which
 would hand a judge a second hostname to trust, so the fallback serves from the same subdomain the
 submission cites: caddy answers from the static export when `muster-web` is down, at the same paths, with
 the banner and the unknown states section 6.5 describes. One hostname, two backends, nothing to rewrite

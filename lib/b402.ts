@@ -50,12 +50,14 @@ export interface PaymentRequirements {
   network: string
   asset: string
   maxAmountRequired: string
+  /** The same value under the x402 v2 name, so a client reading either spelling finds it. */
+  amount: string
   payTo: string
   resource: string
   description: string
   mimeType: string
   maxTimeoutSeconds: number
-  extra: { signerAddress?: string; spenderAddress?: string; name?: string; version?: string }
+  extra: { signerAddress?: string; spenderAddress?: string; name?: string; version?: string; decimals?: number }
 }
 
 /**
@@ -74,6 +76,19 @@ export interface PaymentRequirements {
  * payload the buyer signs against and rewriting one copy would leave the two disagreeing.
  * Nothing here has been round-tripped through /verify: there are no credentials to do it with.
  */
+/**
+ * The x402 v2 transport carries the 402 as a `PAYMENT-REQUIRED` header, base64 of the same
+ * JSON, and the B402 worked examples carry it as the body. A seller that does both is readable
+ * by either kind of client. Plain base64 of UTF-8, padded, which is what the reference
+ * implementation's `safe_base64_encode` emits.
+ */
+export function paymentRequiredHeaders(body: unknown): Record<string, string> {
+  return {
+    'PAYMENT-REQUIRED': Buffer.from(JSON.stringify(body), 'utf8').toString('base64'),
+    'cache-control': 'no-store',
+  }
+}
+
 export function build402(input: {
   resource: string
   description: string
@@ -101,6 +116,7 @@ export function build402(input: {
     network,
     asset: getAddress(token.address),
     maxAmountRequired: input.priceBase,
+    amount: input.priceBase,
     // Checksummed here and in the typed data below, off the same input, so the seller address
     // in the 402 and the one inside `witness.to` are the same bytes and cannot fail a
     // recipient-mismatch check on a string compare.
@@ -114,7 +130,9 @@ export function build402(input: {
     // copy it out of a cached /supported response and we have no access to one. A placeholder
     // address would be a claim about who settles this. `spenderAddress` does not apply to
     // eip3009 at all.
-    extra: { name: token.domain.name, version: token.domain.version },
+    // `decimals` is not in the x402 spec. A validator elsewhere refused a listing because it could
+    // not price the amount without it, and a buyer that cannot price never pays.
+    extra: { name: token.domain.name, version: token.domain.version, decimals: TOKENS[input.token].decimals },
   }
   return {
     status: 402,
