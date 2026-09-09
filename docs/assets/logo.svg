@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240" role="img" aria-label="Muster">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F8CE46"/>
+      <stop offset="1" stop-color="#F0B90B"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#12161C"/>
+      <stop offset="1" stop-color="#0B0E11"/>
+    </linearGradient>
+  </defs>
+
+  <!-- rounded dark panel -->
+  <rect x="8" y="8" width="224" height="224" rx="48" fill="url(#panel)"/>
+  <rect x="8.5" y="8.5" width="223" height="223" rx="47.5" fill="none" stroke="#F0B90B" stroke-opacity="0.18" stroke-width="1"/>
+
+  <!-- M monogram -->
+  <path d="M56 176V64h26l38 60 38-60h26v112h-26v-58l-38 58-38-58v58z" fill="url(#gold)"/>
+</svg>
