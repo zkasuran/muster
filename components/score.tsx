@@ -112,7 +112,7 @@ export function ScoreCell({ scoreValue, scoreConfidence }: { scoreValue: number 
   return (
     <span className="inline-flex flex-col">
       <span className="num text-ink">{scoreValue.toFixed(1)}</span>
-      <span className="num text-xs text-ink-faint">floor {scoreConfidence?.toFixed(1) ?? '—'}</span>
+      <span className="num text-xs text-ink-faint">floor {scoreConfidence?.toFixed(1) ?? 'unknown'}</span>
     </span>
   )
 }

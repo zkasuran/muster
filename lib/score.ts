@@ -19,7 +19,7 @@
  *      evidence ladder a listing has climbed, how fresh that check is, whether the registration is a
  *      duplicate and how many independent parties left on-chain feedback. This score reuses the same
  *      published machinery the delivery score uses: shrinkage toward mu_0 = 0.50, decay by half-life
- *      H, and a Wilson interval, so a stranger recomputes it the same way. It is what worker/score.ts
+ *      H and a Wilson interval, so a stranger recomputes it the same way. It is what worker/score.ts
  *      writes to listing.scoreValue (point estimate) and listing.scoreConfidence (Wilson lower bound).
  *
  * Foreign ERC-8004 feedback (section 4 "F5") is displayed always and trusted nowhere: feedbackInterval
@@ -53,7 +53,7 @@ export interface ScoreInput {
   jobs: CountedJob[]
   /** mu_c, the shrunk category baseline in 0..1. Use categoryBaseline() to derive it. */
   muC: number
-  /** a_c, the median counted price over the trailing 30 days, or null before the launch count k. */
+  /** a_c, the median counted price over the trailing 30 days (null before the launch count k). */
   aC: number | null
   /** now in ms, passed in so a recompute at a pinned time reproduces exactly. */
   asOf: number
@@ -63,7 +63,7 @@ export interface PerJob {
   jobId: string
   buyerCluster: string
   aJ: number
-  /** w_j, and which rule produced it. */
+  /** w_j, plus which rule produced it. */
   wJ: number
   wJRule: 'priceRatio' | 'launchFallback'
   tDays: number
@@ -136,7 +136,7 @@ export const SCORE_CONSTANTS = {
     value: 3,
     symbol: 'C',
     label: 'per-buyer contribution cap, effective jobs',
-    why: 'One buyer cannot make a listing look proven. This is the wash-trade defence as arithmetic rather than as detection, and it needs no funding provenance to work.',
+    why: 'One buyer cannot make a listing look proven. This is the wash-trade defence as arithmetic rather than as detection. It needs no funding provenance to work.',
   },
   betaAttested: {
     value: 1.0,
@@ -232,7 +232,7 @@ export function computeScore(input: ScoreInput): ScoreResult {
   const cap = SCORE_CONSTANTS.C.value
   const z = SCORE_CONSTANTS.z.value
 
-  // Per job: size weight, decay, and the raw contribution before capping.
+  // Per job: size weight, decay and the raw contribution before capping.
   const perJob: PerJob[] = []
   const clusters = new Map<string, { rawN: number; rawS: number; tier: 'attested' | 'fresh' }>()
   let sawRatio = false
@@ -350,7 +350,7 @@ export interface EvidenceScore {
   maxRungSteps: number
   /** exp(-lambda * ageDays), the freshness multiplier applied to the ladder evidence. */
   decay: number
-  /** age of the freshness anchor in days, or null when neither a probe nor an update time exists. */
+  /** age of the freshness anchor in days (null when neither a probe nor an update time exists). */
   evidenceAgeDays: number | null
   /** 1 / max(1, clusterSize). Below 1 when the registration is a duplicate. */
   dupFactor: number

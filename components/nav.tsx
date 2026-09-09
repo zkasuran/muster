@@ -37,6 +37,10 @@ export function Nav() {
           <Link href="/altana" className="text-ink-dim hover:text-brand">
             Altana
           </Link>
+          {/* [doc 06] the quality methodology and anti-gaming summary */}
+          <Link href="/quality" className="text-ink-dim hover:text-brand">
+            Quality
+          </Link>
         </nav>
         <form action="/search" method="get" className="ml-auto flex items-center gap-2">
           <label htmlFor="q" className="sr-only">

@@ -774,7 +774,7 @@ export interface ScoreRead {
   distinctAuthors: number
   /** getSummary count: total feedbacks, inflated by repeat authors. */
   totalFeedbacks: number
-  /** getSummary aggregate value and its decimals, or null when no feedback was read. */
+  /** getSummary aggregate value and its decimals (null when no feedback was read). */
   feedbackValue: string | null
   feedbackDecimals: number | null
 }
