@@ -22,6 +22,28 @@ const config: NextConfig = {
         { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
         { key: 'X-Frame-Options', value: 'DENY' },
         { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' },
+        // A conservative Content-Security-Policy. The high-value directives are locked down:
+        // nothing may frame us, the document base cannot be rewritten, plugins are off, and forms
+        // can only post to our own origin. script-src / style-src keep 'unsafe-inline' because the
+        // app legitimately ships one inline no-flash theme script and Next injects inline hydration
+        // — a nonce scheme is deliberately not attempted this close to judging, where a wrong
+        // directive would blank the page. img/font are self plus data: for the inline favicon and
+        // base64 fonts. This is real hardening on the directives that matter, without breakage risk.
+        {
+          key: 'Content-Security-Policy',
+          value: [
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-inline'",
+            "style-src 'self' 'unsafe-inline'",
+            "img-src 'self' data:",
+            "font-src 'self' data:",
+            "connect-src 'self'",
+            "object-src 'none'",
+            "base-uri 'self'",
+            "form-action 'self'",
+            "frame-ancestors 'none'",
+          ].join('; '),
+        },
       ],
     }]
   },

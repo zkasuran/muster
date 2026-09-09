@@ -1,9 +1,9 @@
 # As built, 2026-09-09
 
 What shipped against the sixteen architecture documents, checked file by file against the code
-and the live site on 2026-09-08 and 2026-09-09. The documents were written on 2026-09-05 and
-2026-09-06 as the design. This file is the inventory. Where the two disagree, this file is right
-about the build and the document is right about the intent.
+and the live site, last reconciled 2026-09-09 (evening). The documents were written on 2026-09-05
+and 2026-09-06 as the design. This file is the inventory. Where the two disagree, this file is
+right about the build and the document is right about the intent.
 
 The rule for every row: BUILT means the code path exists and is reachable on the live site or
 runs as a worker or tool. PARTIAL means a narrower form ships and the difference is named. NOT
@@ -26,7 +26,8 @@ BUILT means nothing in the tree does it.
 | Every page readable with scripting off, on a phone viewport | BUILT | verified by screenshot at 1440 and 390 |
 | Static fallback at the same hostname when the app is down | BUILT | Caddy `lb_policy first` to a file server |
 | Anonymous canary through the judging window | BUILT | `.github/workflows/canary.yml`, every 30 minutes |
-| `/coverage` page, `/receipt/<id>`, `/docs` site, `/operator`, `/badge`, `/v1` REST API, MCP server | NOT BUILT | the landing bars and `/status` carry the coverage counts |
+| `/coverage`, `/docs` site, `/quality`, `/ledger`, `/partners`, `/stack`, `/v1` REST API, `/constants.json` | BUILT | all reachable and 200 on the live site |
+| `/receipt/<id>`, `/operator`, `/badge`, MCP server | NOT BUILT | the landing bars and `/status` carry the coverage counts; a settled hire returns a tx hash |
 
 ## The index and the data
 
@@ -56,14 +57,14 @@ BUILT means nothing in the tree does it.
 | --- | --- | --- |
 | x402 challenge in USD1 over `eip3009`, domain matched on chain | BUILT | JSON body in the Bazaar shape, plus a base64 `PAYMENT-REQUIRED` header and the amount under both field names |
 | Local verification of the buyer's signature | BUILT | `lib/x402-local.ts` recovers the signer over the exact typed data |
-| Settlement | PARTIAL | Muster submits `transferWithAuthorization` from its own key and pays gas (`lib/settle.ts`). The key holds no BNB at the time of writing, so settled reads 0 and the status page shows the balance |
+| Settlement | BUILT | Muster submits `transferWithAuthorization` from its own key and pays gas (`lib/settle.ts`). All four reference agents have taken a real cleared USD1 payment on BSC mainnet — txs `0x487861e1`, `0x0974bf90`, `0x02178d0c`, `0xc5263b67` — and sit at the `settled` rung. `/status` shows the facilitator balance and settled count live. If the key runs out of gas, a valid signature is answered "settlement unavailable" rather than faked |
 | Binance B402 verify and settle | NOT USED | needs a merchant account granted on request. Code present, unused |
 | Two signatures, price plus fee | NOT BUILT | one signature, no fee leg, no treasury |
 | ERC-8183 escrow index, settler, funded testnet job | NOT BUILT | out of scope for this entry, said on `/status` |
 | Receipts with a recompute command, ledger hash chain, signed nightly dump | NOT BUILT | a settled hire returns a transaction hash and nothing more |
 | Wallet screening at write time | NOT BUILT | not claimed anywhere |
-| Four first-party agents on reserved ids, labelled ours everywhere they render | BUILT | ids 900000001 to 900000004, said to be reserved on every page |
-| Four first-party agents registered on the Identity Registry | NOT YET | `tools/register-agents.ts` is written and measured at 180,382 gas each, gated on the same key holding gas |
+| Four first-party agents on reserved ids, labelled ours everywhere they render | BUILT | ids 900000001 to 900000004, said to be reserved and "not a registry id" on every page (decision 18) |
+| Four first-party agents registered on the Identity Registry | AVAILABLE, NOT RUN | `tools/register-agents.ts` is written, measured at 180,382 gas each, and the facilitator now holds gas to run it. Deliberately not run: it would delete the reserved-id rows the README judge path, the Altana table and the settled proof all reference, for marginal gain. The reserved-id design is the documented choice |
 
 ## Tracks
 
@@ -72,7 +73,7 @@ BUILT means nothing in the tree does it.
 | Main track, three published criteria | ENTERED | this repository is the submission |
 | TermiX, Agent Advantage Report as the eligibility gate | BUILT | three tasks, both arms, outputs attached, one rerun recorded |
 | PancakeSwap | PARTIAL | the LP Range Check agent reads live v3 pools; there is no LP rebalance agent that moves funds |
-| Altana | DROPPED | no wallets, no sessions, no explorer links, not claimed |
+| Altana | BUILT | four self-custodial wallets, four sessions registered on chain 97 (grant txs `0x52ae9961`, `0x78fc025a`, `0xb7093356`, `0x052db360`), each with an allowlist, a daily cap and an expiry read live on `/altana`, plus a revoke control. Requirements 1–5 met on chain; `tools/altana-grant.ts` landed them |
 | AltLayer | NOT FILED | credits, not cash |
 
 ## Operations
@@ -81,7 +82,7 @@ BUILT means nothing in the tree does it.
 | --- | --- | --- |
 | One `muster-web` unit, SQLite WAL, Caddy in front | BUILT | `deploy/` |
 | Separate facilitator process holding the key on a unix socket | NOT BUILT | the web process loads the payout key, which holds gas only |
-| Content-Security-Policy header | NOT BUILT | HSTS, nosniff, frame deny and referrer policy are set |
+| Content-Security-Policy header | BUILT | a conservative CSP ships alongside HSTS, nosniff, frame deny and referrer policy: `frame-ancestors 'none'`, `base-uri 'self'`, `object-src 'none'`, `form-action 'self'`, with script/style kept inline-capable for the no-flash theme setter and Next hydration |
 | `npm test` suite | BUILT | node:test over the registry parser, the 402 builder, local EIP-3009 verification, the classifier and the SSRF guard |
 | `npm run check` as one command | BUILT | typecheck, lint, test |
 | `DATA-SOURCES.md` with a quoted clause per input | BUILT | including the endpoint split that keeps bulk reads off PublicNode |
