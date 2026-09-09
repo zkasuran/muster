@@ -143,6 +143,22 @@ entry_hash = hashlib.sha256(canon(head)).hexdigest()
           </pre>
         </section>
 
+        <section className="mt-8 rounded-lg border border-line bg-panel p-4">
+          <h2 className="text-sm uppercase tracking-wide text-ink-faint">Export</h2>
+          <p className="mt-2 text-sm text-ink-dim">
+            Unauthenticated and keyed on a public address, because every field is already on chain
+            or derived from it. The JSON slice carries every entry&apos;s hashes and payload plus the
+            walk rule, so it verifies offline with no key. Add <span className="num">?payer=0x…</span>{' '}
+            to narrow either format to one buyer. The export is hash-chained, not key-signed: this
+            deployment holds no ledger signing key.
+          </p>
+          <p className="mt-3 text-sm">
+            <a className="text-brand" href="/api/ledger/export?format=json">JSON export</a>
+            <span className="mx-2 text-ink-faint">·</span>
+            <a className="text-brand" href="/api/ledger/export?format=csv">CSV export</a>
+          </p>
+        </section>
+
         <p className="mt-8 text-sm">
           <Link className="text-brand" href="/status">Status</Link>
           <span className="mx-2 text-ink-faint">·</span>
