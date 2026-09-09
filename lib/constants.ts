@@ -181,3 +181,11 @@ export const PINNED_IMPL: Record<string, string | null> = {
   USDT: null,
   USDC: '0xBA5Fe23f8a3a24BEd3236F05F2FcF35fd0BF0B5C',
 }
+
+/**
+ * [doc 11] PancakeSwap v3 enables these fee tiers on BSC, in pips (hundredths of a basis point,
+ * so 100 is 0.01% and 10000 is 1%). There is no 3000 (0.3%) tier here, which a Uniswap-shaped
+ * assumption would add. lib/pancake.ts reads a pool's fee() and labels it, and these are the tiers
+ * that label can legitimately carry.
+ */
+export const PANCAKE_V3_FEE_TIERS = [100, 500, 2500, 10000] as const
