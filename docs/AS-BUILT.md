@@ -46,7 +46,7 @@ BUILT means nothing in the tree does it.
 | Venus supply APY at a measured block time | BUILT | `lib/yield.ts` |
 | PancakeSwap v3 pool read, tick to price through both decimals, fee tiers 100, 500, 2500, 10000 | BUILT | `lib/pancake.ts` |
 | Second index as a cross-check with lag rendered | NOT BUILT | `/status` says "not cross-checked yet" rather than borrowing a number |
-| Muster quality score with interval and sample size | NOT BUILT | rungs plus feedback counts stand in |
+| Muster quality score with interval and sample size | BUILT | `lib/score.ts` computes the point estimate, the Wilson lower and upper bound and the effective sample size; `worker/score.ts` writes `scoreValue` and `scoreConfidence`; rendered on `/quality`, `/agent/<id>`, `/shelf/<slug>`, `/compare` and `/status` via `components/score.tsx`, sorted by the lower bound never the headline. Provisional (n=0 delivery) until settled-job volume grows, and it says so |
 | Sampler time series over pools and accounts | NOT BUILT | spot reads only, which `15-SYSTEM.md` allows as its first cut |
 | Log tail for `URIUpdated`, `MetadataSet`, `NewFeedback` | NOT BUILT | only one public endpoint serves logs and refuses history |
 | Unknown never rendered as zero | BUILT | one CSS class, one component, judge walk clean |
@@ -61,7 +61,7 @@ BUILT means nothing in the tree does it.
 | Binance B402 verify and settle | NOT USED | needs a merchant account granted on request. Code present, unused |
 | Two signatures, price plus fee | NOT BUILT | one signature, no fee leg, no treasury |
 | ERC-8183 escrow index, settler, funded testnet job | NOT BUILT | out of scope for this entry, said on `/status` |
-| Receipts with a recompute command, ledger hash chain, signed nightly dump | NOT BUILT | a settled hire returns a transaction hash and nothing more |
+| Receipts and a ledger | BUILT | `/receipt/<attemptId>` renders the exact authorization the buyer signed, the settle transaction and the keccak256 of the signature as verify evidence; `/ledger` and `/api/ledger` show the chain, each entry linked to its receipt; `/status` links the most recent receipt. A signed nightly dump and an off-line recompute command are still NOT BUILT |
 | Wallet screening at write time | NOT BUILT | not claimed anywhere |
 | Four first-party agents on reserved ids, labelled ours everywhere they render | BUILT | ids 900000001 to 900000004, said to be reserved and "not a registry id" on every page (decision 18) |
 | Four first-party agents registered on the Identity Registry | AVAILABLE, NOT RUN | `tools/register-agents.ts` is written, measured at 180,382 gas each, and the facilitator now holds gas to run it. Deliberately not run: it would delete the reserved-id rows the README judge path, the Altana table and the settled proof all reference, for marginal gain. The reserved-id design is the documented choice |
