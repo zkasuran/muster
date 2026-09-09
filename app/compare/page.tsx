@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import { Nav, Footer } from '@/components/nav'
 import { EvidenceBadge } from '@/components/evidence'
+import { ScoreReadout } from '@/components/score'
 import { ago } from '@/components/fresh'
-import { listingsForCompare, latestProbes, type ListingCard } from '@/lib/queries'
+import { listingsForCompare, latestProbes, scoreReadsFor, type ListingCard } from '@/lib/queries'
 import { SHELF_TITLES } from '@/lib/classify'
 import { TOKENS } from '@/lib/constants'
 import { EVIDENCE_ORDER } from '@/lib/types'
@@ -21,6 +22,9 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
   const wanted = (ids ?? '').split(',').map((s) => s.trim()).filter(Boolean)
   const rows = listingsForCompare(wanted)
   const probes = latestProbes(rows.map((r) => r.listingId))
+  // [doc 06] the raw fields each row's evidence score is recomputed from, so the number carries the
+  // freshness it is stated at rather than the time the score job last ran.
+  const scoreReads = scoreReadsFor(rows.map((r) => r.listingId))
 
   return (
     <>
@@ -55,6 +59,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
               : 'One agent is loaded. Add at least one more to compare.'}
           </p>
         ) : (
+          <>
           <div className="mt-8 overflow-x-auto">
             <table className="w-full min-w-[640px] border-collapse text-sm">
               <thead>
@@ -115,6 +120,32 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
               </tbody>
             </table>
           </div>
+            {/* [doc 06] evidence score per column, shown with its confidence floor, sample and
+                freshness, never bare. First-party rows are labelled and get no ranking advantage. */}
+            <section className="mt-8">
+              <h2 className="text-sm uppercase tracking-wide text-ink-faint">Evidence score</h2>
+              <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {rows.map((r) => {
+                  const sr = scoreReads.get(r.listingId)
+                  return (
+                    <div key={r.listingId} className="rounded-lg border border-line bg-panel p-3">
+                      <div className="text-xs text-ink-faint">
+                        {r.name ?? `agent ${r.agentId}`}
+                        {r.firstParty === 1 && <span className="ml-2 rounded-sm border border-warn/50 px-1.5 text-warn">ours</span>}
+                      </div>
+                      {sr ? (
+                        <div className="mt-2">
+                          <ScoreReadout compact rung={sr.evidenceTier} lastProbeAt={sr.lastProbeAt} updatedAt={sr.updatedAt} distinctAuthors={sr.distinctAuthors} clusterSize={sr.clusterSize} firstParty={sr.firstParty === 1} />
+                        </div>
+                      ) : (
+                        <p className="mt-2 unknown text-sm">not scored yet</p>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          </>
         )}
       </main>
       <Footer />
