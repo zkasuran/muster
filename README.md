@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/favicon.svg" alt="Muster" width="120" height="120" />
+  <img src="docs/assets/logo.svg" alt="Muster" width="120" height="120" />
 </p>
 
 <h1 align="center">Muster</h1>
