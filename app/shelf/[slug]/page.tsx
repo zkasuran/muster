@@ -4,7 +4,7 @@ import { Nav, Footer } from '@/components/nav'
 import { ListingRow, ListingTr } from '@/components/listing-row'
 import { RungBar } from '@/components/evidence'
 import { num } from '@/components/fresh'
-import { shelfListings, shelfCount, rungCounts, type ShelfQuery } from '@/lib/queries'
+import { shelfListings, shelfCount, rungCounts, offShelf, type ShelfQuery } from '@/lib/queries'
 import { contractFor, SHELF_TITLES } from '@/lib/classify'
 import { SHELVES } from '@/lib/constants'
 import { EVIDENCE_ORDER, type EvidenceRung, type Shelf } from '@/lib/types'
@@ -66,6 +66,9 @@ export default async function ShelfPage({ params, searchParams }: { params: Prom
   const rungs = rungCounts(shelf)
   const ours = shelfListings(shelf, { who: 'ours', limit: 1 })[0]?.agentId
   const pages = Math.max(1, Math.ceil(total / 40))
+  // [doc 03] The off-shelf drawer reads the whole shelf, not the current facets, so the count of
+  // candidates we can read but do not list is always the shelf's own, docs/03-TAXONOMY.md 5.3.
+  const off = offShelf(shelf)
 
   return (
     <>
@@ -101,6 +104,12 @@ export default async function ShelfPage({ params, searchParams }: { params: Prom
             <div><div className="text-ink-faint">Units</div><div className="num text-ink-soft">{contract.units}</div><p className="mt-2 text-ink-faint">A row is here because its record matches this contract. It rises above declared only when a probe agrees.</p></div>
           </div>
         </details>
+
+        {/* [doc 03] The full contract page: inputs, outputs, live counts and the published classifier rules. */}
+        <p className="mt-2 text-sm">
+          <Link href={`/shelf/${slug}/contract`} className="text-brand">Read the full contract</Link>
+          <span className="text-ink-faint">. It lists what a listing must accept and return, plus the exact rules that make a candidate.</span>
+        </p>
 
         <div className="mt-6 grid gap-6 md:grid-cols-[220px_1fr]">
           <aside className="space-y-5 text-sm">
@@ -178,6 +187,10 @@ export default async function ShelfPage({ params, searchParams }: { params: Prom
             )}
           </section>
         </div>
+
+        {/* [doc 03] Off shelf: candidates we can read but do not list, broken out by reason, never
+            merged into one offline number. docs/03-TAXONOMY.md section 5.3 and 3.1. */}
+        <OffShelfDrawer shelfTitle={contract.title} off={off} />
       </main>
       <Footer />
     </>
@@ -198,5 +211,61 @@ function FacetLink({ href: h, active, children }: { href: string; active: boolea
     <Link href={h} className={cn('flex items-center rounded-md px-2 py-1 text-sm', active ? 'bg-panel-2 text-brand' : 'text-ink-soft hover:bg-panel-2 hover:text-ink')}>
       {children}
     </Link>
+  )
+}
+
+// [doc 03] The off-shelf drawer. Every row is a candidate the classifier matched that we can read
+// but cannot list, because it has no endpoint to call or its registration would not parse. Each
+// reason is a separate count, never one merged offline number, so an operator sees the exact fix.
+function OffShelfDrawer({ shelfTitle, off }: { shelfTitle: string; off: ReturnType<typeof offShelf> }) {
+  if (off.total === 0) {
+    return (
+      <details className="mt-10 rounded-lg border border-line bg-panel">
+        <summary className="cursor-pointer px-4 py-3 text-sm text-ink-soft">Off shelf: none</summary>
+        <p className="border-t border-line px-4 py-3 text-sm text-ink-dim">
+          Every candidate the classifier matched for {shelfTitle} has an endpoint to call, so it is on the
+          shelf above. Nothing is held off it. That is a real zero, measured over the shelf.
+        </p>
+      </details>
+    )
+  }
+  return (
+    <details className="mt-10 rounded-lg border border-line bg-panel">
+      <summary className="cursor-pointer px-4 py-3 text-sm text-ink-soft">
+        Off shelf: <span className="num text-ink">{num(off.total)}</span> {off.total === 1 ? 'candidate we can read but do not list' : 'candidates we can read but do not list'}
+      </summary>
+      <div className="border-t border-line px-4 py-4">
+        <p className="text-xs text-ink-dim">
+          Each of these matched the contract text but is not callable. The reason is kept separate
+          rather than merged into one offline number, because each needs a different fix from the operator.
+        </p>
+        <ul className="mt-3 flex flex-wrap gap-2 text-xs">
+          {off.byReason.map((r) => (
+            <li key={r.reason} className="rounded-sm border border-line px-2 py-1 text-ink-soft">
+              {r.reason} <span className="num text-ink-faint">{num(r.c)}</span>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-4 overflow-x-auto rounded-lg border border-line bg-canvas">
+          <table className="w-full min-w-[560px] text-sm">
+            <thead><tr className="text-left text-xs font-normal text-ink-faint">
+              <th className="px-3 py-2">Agent</th><th className="py-2 pr-3">Reason it is off shelf</th><th className="py-2 pr-3">Cluster</th>
+            </tr></thead>
+            <tbody className="[&>tr>td:first-child]:pl-3">
+              {off.rows.map((r) => (
+                <tr key={r.agentId} className="border-t border-line-soft">
+                  <td className="py-2"><Link href={`/agent/${r.agentId}`} className="text-brand hover:underline">{r.name ?? `agent ${r.agentId}`}</Link></td>
+                  <td className="py-2 pr-3 text-ink-soft">{r.reason}</td>
+                  <td className="py-2 pr-3">{r.clusterSize > 1 ? <span className="num text-ink-faint">{num(r.clusterSize)} identical</span> : <span className="text-ink-faint">unique</span>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {off.rows.length < off.total && (
+          <p className="mt-2 text-xs text-ink-faint">Showing the first <span className="num">{num(off.rows.length)}</span> of <span className="num">{num(off.total)}</span>.</p>
+        )}
+      </div>
+    </details>
   )
 }

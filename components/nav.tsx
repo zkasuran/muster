@@ -25,6 +25,10 @@ export function Nav() {
           <Link href="/status" className="text-ink-dim hover:text-brand">
             Status
           </Link>
+          {/* [doc 03] Coverage is the Agent Diversity proof, so a judge reaches it from any page. */}
+          <Link href="/coverage" className="text-ink-dim hover:text-brand">
+            Coverage
+          </Link>
         </nav>
         <form action="/search" method="get" className="ml-auto flex items-center gap-2">
           <label htmlFor="q" className="sr-only">

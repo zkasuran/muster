@@ -9,6 +9,8 @@
 import { db } from './db.ts'
 import { CHAIN } from './constants.ts'
 import { EVIDENCE_ORDER, type EvidenceRung, type Shelf, type Visibility } from './types.ts'
+// [doc 03] Search grammar. The parser is pure and lives in search.ts; this file turns it into SQL.
+import { tokenAddress, type ParsedQuery, type Clause } from './search.ts'
 
 const CHAIN_ID = CHAIN.id
 
@@ -547,4 +549,205 @@ export function feedbackFor(agentId: string): { clients: number; count: number; 
   const r = one<{ v: string }>('SELECT v FROM meta WHERE k = ?', `feedback.${agentId}`)
   if (!r) return null
   try { return JSON.parse(r.v) } catch { return null }
+}
+
+// [doc 03] Coverage proof, docs/03-TAXONOMY.md section 5.1 and docs/02-THESIS.md section 7.
+// Every count on this page carries its first-party split, because the Agent Diversity criterion
+// is lost the moment a shelf looks full of our own supply and the count does not say so. A count
+// here is a measurement over the index, so a zero is a real zero and never an unknown.
+
+/** A count and how much of it is our own reference supply, so the split is beside every number. */
+export interface CountSplit {
+  total: number
+  ours: number
+  third: number
+}
+
+export interface ShelfCoverage {
+  shelf: Shelf
+  /** Rows the classifier placed on this shelf, listed plus indexed. The candidate count. */
+  candidates: CountSplit
+  /** Rows with a callable endpoint, shown on the shelf itself. */
+  listed: CountSplit
+  /** Rows we can read but that have no endpoint to call, kept off the shelf. */
+  indexed: CountSplit
+  /** Rows whose most recent probe passed. The answering count. */
+  answering: CountSplit
+  /** Rows payable here: at the payable or settled rung with a price in a token we quote on BSC. */
+  hireable: CountSplit
+  /** Settled jobs through Muster in this category. A ledger count, so zero is measured. */
+  settledJobs: number
+  /** The block the index was read at, so the whole page carries one freshness stamp. */
+  atBlock: number | null
+}
+
+function splitOn(shelf: Shelf, extra: string): CountSplit {
+  const rows = many<{ firstParty: number; c: number }>(
+    `SELECT l.firstParty, COUNT(*) c FROM listing l
+     WHERE l.chainId = ? AND l.category = ?${extra ? ` AND ${extra}` : ''}
+     GROUP BY l.firstParty`,
+    CHAIN_ID,
+    shelf,
+  )
+  let ours = 0
+  let third = 0
+  for (const r of rows) { if (r.firstParty === 1) ours += r.c; else third += r.c }
+  return { total: ours + third, ours, third }
+}
+
+export function coverageByShelf(): ShelfCoverage[] {
+  const shelves: Shelf[] = ['rebalancing', 'grid-trading', 'yield', 'health-factor']
+  const atBlock = (() => {
+    const r = one<{ v: string }>('SELECT v FROM meta WHERE k = ?', 'chain.atBlock')
+    return r ? Number(r.v) : null
+  })()
+  return shelves.map((shelf) => ({
+    shelf,
+    candidates: splitOn(shelf, "l.visibility IN ('listed','indexed')"),
+    listed: splitOn(shelf, "l.visibility = 'listed'"),
+    indexed: splitOn(shelf, "l.visibility = 'indexed'"),
+    answering: splitOn(shelf, "l.lastProbeVerdict = 'pass'"),
+    // Hireable HERE is stricter than the payable rung: it needs a price in a token this
+    // marketplace quotes, so a 402 whose options are all on another network is not counted.
+    hireable: splitOn(shelf, "l.evidenceTier IN ('payable','settled') AND l.priceToken IS NOT NULL"),
+    settledJobs: one<{ c: number }>('SELECT COUNT(*) c FROM hireAttempt WHERE shelf = ? AND settled = 1', shelf)?.c ?? 0,
+    atBlock,
+  }))
+}
+
+/**
+ * The off-shelf rows for a shelf: everything at visibility `indexed`, which is a row we can read
+ * that has no endpoint to call, plus the reason it is off the shelf, derived from stored fields
+ * rather than a new column. docs/03-TAXONOMY.md section 5.3 (off-shelf drawer) and 3.1.
+ */
+export interface OffShelfRow {
+  agentId: string
+  name: string | null
+  reason: string
+  clusterSize: number
+}
+
+export function offShelf(shelf: Shelf, limit = 40): { rows: OffShelfRow[]; total: number; byReason: { reason: string; c: number }[] } {
+  const rows = many<{ agentId: string; name: string | null; endpointCount: number; parsed: number; clusterSize: number }>(
+    `SELECT l.agentId, a.name, a.registrationParsed AS parsed,
+            json_array_length(a.endpoints) AS endpointCount,
+            (SELECT COUNT(*) FROM agent s WHERE s.duplicateClusterId IS NOT NULL
+               AND s.duplicateClusterId = a.duplicateClusterId) AS clusterSize
+     FROM listing l JOIN agent a ON a.chainId = l.chainId AND a.agentId = l.agentId
+     WHERE l.chainId = ? AND l.category = ? AND l.visibility = 'indexed'
+     ORDER BY CAST(l.agentId AS INTEGER) ASC
+     LIMIT ?`,
+    CHAIN_ID,
+    shelf,
+    Math.min(limit, 200),
+  )
+  const withReason = rows.map((r) => ({
+    agentId: r.agentId,
+    name: r.name,
+    clusterSize: r.clusterSize,
+    reason:
+      r.parsed === 0
+        ? 'registration could not be parsed'
+        : r.endpointCount === 0
+          ? 'no endpoint to call in its registration record'
+          : 'matched the contract text but has nothing callable',
+  }))
+  const total = one<{ c: number }>(
+    "SELECT COUNT(*) c FROM listing WHERE chainId = ? AND category = ? AND visibility = 'indexed'",
+    CHAIN_ID,
+    shelf,
+  )?.c ?? 0
+  const counts = new Map<string, number>()
+  for (const r of withReason) counts.set(r.reason, (counts.get(r.reason) ?? 0) + 1)
+  const byReason = [...counts.entries()].map(([reason, c]) => ({ reason, c })).sort((a, b) => b.c - a.c)
+  return { rows: withReason, total, byReason }
+}
+
+// [doc 03] Search grammar query, docs/03-TAXONOMY.md section 5.6. Turns a ParsedQuery into SQL over
+// listing joined to agent. Every clause maps to a stored column, so nothing here is a free-text
+// filter in disguise. Default scope is is:live (visibility listed). An is:indexed clause widens to
+// the whole index. The order is deterministic, so a shared query link renders the same rows for
+// every reader.
+
+function answeredSql(v: string, args: unknown[]): string {
+  if (v === 'ever') return 'l.lastProbeAt IS NOT NULL'
+  if (v === 'never') return 'l.lastProbeAt IS NULL'
+  const win = v === '5m' ? 5 * 60_000 : v === '1h' ? 3_600_000 : 86_400_000
+  args.push(Date.now() - win)
+  return 'l.lastProbeAt >= ?'
+}
+
+function clauseSql(c: Clause, args: unknown[]): string {
+  switch (c.op) {
+    case 'is':
+      switch (c.value) {
+        // live and indexed set the visibility scope, so they add no per-row condition here.
+        case 'live':
+        case 'indexed':
+          return ''
+        case 'hireable':
+          return "(l.evidenceTier IN ('payable','settled') AND l.priceToken IS NOT NULL)"
+        case 'first-party':
+          return 'l.firstParty = 1'
+        case 'duplicate':
+          return 'a.duplicateClusterId IS NOT NULL'
+        case 'x402':
+          return 'a.declaresX402 = 1'
+        default:
+          return ''
+      }
+    case 'tag':
+      args.push(c.value)
+      return 'l.category = ?'
+    case 'tier': {
+      args.push(EVIDENCE_ORDER.indexOf(c.value as EvidenceRung) + 1)
+      return c.gte ? `${RUNG_RANK} >= ?` : `${RUNG_RANK} = ?`
+    }
+    case 'rail':
+      args.push(c.value)
+      return 'l.priceScheme = ?'
+    case 'token':
+      args.push(tokenAddress(c.value).toLowerCase())
+      return 'lower(l.priceToken) = ?'
+    case 'answered':
+      return answeredSql(c.value, args)
+    case 'owner':
+      args.push(c.value.toLowerCase())
+      return 'lower(a.owner) = ?'
+    case 'agent':
+      args.push(c.value)
+      return 'l.agentId = ?'
+    case 'cluster':
+      args.push(c.value)
+      return 'a.duplicateClusterId = ?'
+    default:
+      return ''
+  }
+}
+
+export function searchGrammar(parsed: ParsedQuery, limit = 40): ListingCard[] {
+  const where: string[] = ['l.chainId = ?']
+  const args: unknown[] = [CHAIN_ID]
+
+  const wantsIndexed = parsed.clauses.some((c) => c.op === 'is' && c.value === 'indexed' && !c.negate)
+  where.push(wantsIndexed ? "l.visibility IN ('listed','indexed')" : "l.visibility = 'listed'")
+
+  for (const c of parsed.clauses) {
+    const cond = clauseSql(c, args)
+    if (cond) where.push(c.negate ? `NOT (${cond})` : cond)
+  }
+  for (const t of parsed.terms) {
+    const like = `%${t.toLowerCase().slice(0, 80)}%`
+    where.push("(lower(coalesce(a.name,'')) LIKE ? OR lower(coalesce(a.description,'')) LIKE ? OR lower(a.skills) LIKE ? OR l.agentId = ?)")
+    args.push(like, like, like, t)
+  }
+
+  return many<ListingCard>(
+    `${CARD_SELECT}
+     WHERE ${where.join(' AND ')}
+     ORDER BY ${RUNG_RANK} DESC, l.firstParty ASC, CAST(l.agentId AS INTEGER) ASC
+     LIMIT ?`,
+    ...args,
+    Math.min(limit, 200),
+  )
 }

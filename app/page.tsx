@@ -121,6 +121,10 @@ export default function Home() {
               )
             })}
           </ul>
+          {/* [doc 03] The Agent Diversity proof: every shelf's counts with the first-party split. */}
+          <p className="mt-4 text-sm text-ink-dim">
+            <Link href="/coverage" className="text-brand">See all four side by side on the coverage page</Link>, with the third-party and first-party split beside every count, the classifier basis and an honest note on precision.
+          </p>
         </section>
 
         <section className="mt-14" aria-labelledby="measured">
