@@ -175,6 +175,28 @@ CREATE TABLE IF NOT EXISTS meta (
   v TEXT NOT NULL,
   updatedAt INTEGER NOT NULL
 );
+
+-- [doc 08] The money ledger. Append-only and hash-chained: every row carries the previous
+-- row's entryHash, the origin tag (house or order), the event kind and the payload hash, so a
+-- reader can walk the chain and recompute every link. seq is explicit rather than autoincrement
+-- because the entryHash is computed over it before the insert. refKey is the natural dedup key
+-- (hireAttempt:<id> or settlement:<id>) so a projection from hireAttempt appends each event once.
+-- origin is CHECK-constrained here, which is what "enforced at append time" means: an unknown
+-- value cannot be written rather than being caught later by the walk.
+CREATE TABLE IF NOT EXISTS ledgerEntry (
+  seq          INTEGER PRIMARY KEY,
+  ts           INTEGER NOT NULL,
+  origin       TEXT NOT NULL CHECK (origin IN ('house','order')),
+  kind         TEXT NOT NULL CHECK (kind IN ('hireAttempt','settlement')),
+  refKey       TEXT NOT NULL UNIQUE,
+  payload      TEXT NOT NULL,
+  payloadHash  TEXT NOT NULL,
+  prevHash     TEXT NOT NULL,
+  entryHash    TEXT NOT NULL,
+  backfilled   INTEGER NOT NULL DEFAULT 0 CHECK (backfilled IN (0, 1)),
+  backfilledAt INTEGER
+);
+CREATE INDEX IF NOT EXISTS ledger_kind ON ledgerEntry (kind, seq);
 `
 
 export function db(): DatabaseSync {
