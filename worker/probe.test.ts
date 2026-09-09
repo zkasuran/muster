@@ -19,7 +19,7 @@ import { existsSync } from 'node:fs'
 const TEMP_DB = join(tmpdir(), `muster-probe-test-${process.pid}.db`)
 process.env['MUSTER_DB'] = TEMP_DB
 
-const { isSafeUrl, observedRung, PROBE_ASSERTION } = await import('./probe.ts')
+const { isSafeUrl, observedRung, PROBE_ASSERTION, parsePaymentRequirements } = await import('./probe.ts')
 
 function reason(url: string): string {
   const v = isSafeUrl(url)
@@ -123,4 +123,58 @@ test('observedRung awards no rung without a verified certificate', () => {
 test('the assertion id is the G3 gate and no store file was opened', () => {
   assert.equal(PROBE_ASSERTION, 'G3-endpoint-hygiene')
   assert.equal(existsSync(TEMP_DB), false)
+})
+
+// [doc 04] The 402 challenge is read from both channels, and which a third party served is recorded.
+function challenge(amount: string, network = 'eip155:56'): string {
+  return JSON.stringify({
+    x402Version: 2,
+    accepts: [{ scheme: 'eip3009', network, amount, payTo: '0xabc0000000000000000000000000000000000000', extra: { decimals: 18 } }],
+  })
+}
+const b64 = (s: string): string => Buffer.from(s, 'utf8').toString('base64')
+
+test('a 402 in the header alone is read, source header, body not served', () => {
+  const info = parsePaymentRequirements({ 'payment-required': b64(challenge('100')) }, '')
+  assert.ok(info)
+  assert.equal(info!.source, 'header')
+  assert.equal(info!.servedHeader, true)
+  assert.equal(info!.servedBody, false)
+  assert.equal(info!.channelsAgree, null)
+  assert.equal(info!.bsc, true)
+})
+
+test('a 402 in the body alone is read, source body', () => {
+  const info = parsePaymentRequirements({}, challenge('100'))
+  assert.ok(info)
+  assert.equal(info!.source, 'body')
+  assert.equal(info!.servedBody, true)
+  assert.equal(info!.servedHeader, false)
+  assert.equal(info!.channelsAgree, null)
+})
+
+test('both channels present and equal are recorded as agreeing, header authoritative', () => {
+  const info = parsePaymentRequirements({ 'payment-required': b64(challenge('100')) }, challenge('100'))
+  assert.ok(info)
+  assert.equal(info!.source, 'header')
+  assert.equal(info!.servedHeader, true)
+  assert.equal(info!.servedBody, true)
+  assert.equal(info!.channelsAgree, true)
+})
+
+test('both channels present but different are recorded as disagreeing', () => {
+  const info = parsePaymentRequirements({ 'payment-required': b64(challenge('100')) }, challenge('200'))
+  assert.ok(info)
+  assert.equal(info!.channelsAgree, false)
+})
+
+test('a network that is not BSC is read and marked not BSC', () => {
+  const info = parsePaymentRequirements({}, challenge('100', 'base'))
+  assert.ok(info)
+  assert.equal(info!.bsc, false)
+})
+
+test('no challenge in either channel returns null', () => {
+  assert.equal(parsePaymentRequirements({}, ''), null)
+  assert.equal(parsePaymentRequirements({ 'payment-required': 'not base64 json!!' }, 'plain text'), null)
 })
