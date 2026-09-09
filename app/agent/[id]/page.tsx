@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Nav, Footer } from '@/components/nav'
 import { EvidenceBadge, EvidenceLadder, RungBar } from '@/components/evidence'
+import { ScoreReadout, FeedbackBand } from '@/components/score'
 import { ago, num } from '@/components/fresh'
 import { agentDetail, probeHistory, firstPartyOnShelf, feedbackFor } from '@/lib/queries'
 import { parseAgentCard } from '@/lib/agentcard'
@@ -93,6 +94,25 @@ export default async function AgentPage({ params }: { params: Promise<{ id: stri
 
         <div className="mt-8 grid gap-6 md:grid-cols-3">
           <section className="md:col-span-2 space-y-6">
+            {/* [doc 06] The score, shown honestly: the number with its confidence floor, its sample
+                and its freshness, never bare, plus the foreign feedback with a Wilson interval and its
+                distinct-author sample size rather than a star. */}
+            <Card title="Score">
+              <ScoreReadout
+                rung={a.evidenceTier}
+                lastProbeAt={a.lastProbeAt}
+                updatedAt={a.updatedAt}
+                distinctAuthors={feedback?.clients ?? 0}
+                clusterSize={a.clusterSize}
+                firstParty={ours}
+              />
+              {feedback && feedback.count > 0 && (
+                <div className="mt-4">
+                  <FeedbackBand value={feedback.value} decimals={feedback.decimals} distinctAuthors={feedback.clients} totalFeedbacks={feedback.count} />
+                </div>
+              )}
+            </Card>
+
             <Card title="Hire">
               {hireable && ours && spec ? (
                 <>

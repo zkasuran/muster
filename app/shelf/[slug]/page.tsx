@@ -2,9 +2,10 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Nav, Footer } from '@/components/nav'
 import { ListingRow, ListingTr } from '@/components/listing-row'
-import { RungBar } from '@/components/evidence'
+import { RungBar, EvidenceBadge } from '@/components/evidence'
+import { ScoreCell } from '@/components/score'
 import { num } from '@/components/fresh'
-import { shelfListings, shelfCount, rungCounts, offShelf, type ShelfQuery } from '@/lib/queries'
+import { shelfListings, shelfCount, rungCounts, offShelf, shelfByScore, type ShelfQuery, type ScoredCard } from '@/lib/queries'
 import { contractFor, SHELF_TITLES } from '@/lib/classify'
 import { SHELVES } from '@/lib/constants'
 import { EVIDENCE_ORDER, type EvidenceRung, type Shelf } from '@/lib/types'
@@ -69,6 +70,8 @@ export default async function ShelfPage({ params, searchParams }: { params: Prom
   // [doc 03] The off-shelf drawer reads the whole shelf, not the current facets, so the count of
   // candidates we can read but do not list is always the shelf's own, docs/03-TAXONOMY.md 5.3.
   const off = offShelf(shelf)
+  // [doc 06] The shelf ranked by the evidence score's confidence floor, section 2's M_lo sort.
+  const byScore = shelfByScore(shelf, 12)
 
   return (
     <>
@@ -191,6 +194,11 @@ export default async function ShelfPage({ params, searchParams }: { params: Prom
         {/* [doc 03] Off shelf: candidates we can read but do not list, broken out by reason, never
             merged into one offline number. docs/03-TAXONOMY.md section 5.3 and 3.1. */}
         <OffShelfDrawer shelfTitle={contract.title} off={off} />
+
+        {/* [doc 06] The shelf ranked by the evidence score's confidence floor (M_lo, never M), so a
+            thin sample cannot outrank a better-evidenced row. First-party rows are labelled ours and
+            sort last on a tie, so being ours is never a ranking advantage. */}
+        <ScoreRanking rows={byScore} />
       </main>
       <Footer />
     </>
@@ -267,5 +275,48 @@ function OffShelfDrawer({ shelfTitle, off }: { shelfTitle: string; off: ReturnTy
         )}
       </div>
     </details>
+  )
+}
+
+// [doc 06] The shelf ranked by the evidence score's confidence floor. docs/06-QUALITY.md section 2:
+// "the default sort uses M_lo, never M", so a listing cannot outrank a better-evidenced one on a
+// tiny sample. The number is never bare: it carries its confidence floor. First-party rows are
+// labelled ours and the query tie-breaks them last, so being ours is never a ranking advantage.
+function ScoreRanking({ rows }: { rows: ScoredCard[] }) {
+  return (
+    <section className="mt-10 rounded-lg border border-line bg-panel p-4">
+      <h2 className="text-sm uppercase tracking-wide text-ink-faint">Ranked by evidence score</h2>
+      <p className="mt-1 text-xs text-ink-dim">
+        Sorted by the 95% confidence floor, never the headline, so a thin record cannot jump a
+        better-evidenced one. It measures how far up the six-rung ladder a listing has climbed, not
+        whether its work was any good. No listing has a settled paid job yet, so the delivery score is
+        provisional for every row. <a href="/quality" className="text-brand">How the score works</a>.
+      </p>
+      {rows.length === 0 ? (
+        <p className="mt-3 text-sm text-ink-dim">No listing on this shelf has been scored yet.</p>
+      ) : (
+        <div className="mt-3 overflow-x-auto rounded-lg border border-line bg-canvas">
+          <table className="w-full min-w-[560px] text-sm">
+            <thead><tr className="text-left text-xs font-normal text-ink-faint">
+              <th className="px-3 py-2">#</th><th className="py-2 pr-3">Agent</th><th className="py-2 pr-3">Rung</th><th className="py-2 pr-3">Evidence score</th><th className="py-2 pr-3">Independent authors</th>
+            </tr></thead>
+            <tbody className="[&>tr>td:first-child]:pl-3">
+              {rows.map((r, i) => (
+                <tr key={r.listingId} className="border-t border-line-soft">
+                  <td className="num py-2 text-ink-faint">{i + 1}</td>
+                  <td className="py-2">
+                    <Link href={`/agent/${r.agentId}`} className="text-brand hover:underline">{r.name ?? `agent ${r.agentId}`}</Link>
+                    {r.firstParty === 1 && <span className="ml-2 rounded-sm border border-warn/50 px-1.5 text-xs text-warn">ours</span>}
+                  </td>
+                  <td className="py-2 pr-3"><EvidenceBadge rung={r.evidenceTier} /></td>
+                  <td className="py-2 pr-3"><ScoreCell scoreValue={r.scoreValue} scoreConfidence={r.scoreConfidence} /></td>
+                  <td className="num py-2 pr-3 text-ink-soft">{r.distinctAuthors > 0 ? num(r.distinctAuthors) : <span className="text-ink-faint">none</span>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   )
 }

@@ -35,6 +35,9 @@ export default async function StatusPage() {
     h.agentsOnChain && h.agentsOnChain > 0
       ? ((h.agentsIndexed / h.agentsOnChain) * 100).toFixed(1)
       : null
+  // [doc 06] score coverage for the quality summary section
+  const scoredCount = (db().prepare('SELECT COUNT(*) c FROM listing WHERE scoreValue IS NOT NULL').get() as { c: number }).c
+  const listingTotal = (db().prepare('SELECT COUNT(*) c FROM listing').get() as { c: number }).c
 
   return (
     <>
@@ -124,6 +127,19 @@ export default async function StatusPage() {
                 <a className="text-brand" href={`/receipt/${latestAttempt}`}>/receipt/{latestAttempt.slice(0, 8)}…</a>.
               </>
             )}
+          </p>
+        </Section>
+
+        {/* [doc 06] the quality methodology and anti-gaming summary */}
+        <Section title="The score and anti-gaming">
+          <Row label="Listings carrying an evidence score" value={`${scoredCount} of ${listingTotal}`} note="every listing has a rung, so none reads a zero standing in for unknown" />
+          <Row label="Delivery score" value="provisional" note="counts only settled paid jobs, of which there are none yet, so it is n=0 on every card" />
+          <p className="mt-3 text-sm text-ink-dim">
+            The eight published constants, both scores and the anti-gaming summary marking what is enforced
+            in code against what is documented only are at <a className="text-brand" href="/quality">/quality</a>.
+            The per-buyer cap, the duplicate-registration collapse and the first-party zero-advantage rule are
+            enforced. The funder, cluster, window, control-set, ring and reconcile detections are documented
+            and not wired in this build and the page says so rather than implying otherwise.
           </p>
         </Section>
 

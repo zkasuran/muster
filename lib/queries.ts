@@ -751,3 +751,93 @@ export function searchGrammar(parsed: ParsedQuery, limit = 40): ListingCard[] {
     Math.min(limit, 200),
   )
 }
+
+// [doc 06] The quality score read path. worker/score.ts writes listing.scoreValue and
+// listing.scoreConfidence; these functions read them back plus the raw fields a page needs to
+// recompute the evidence score live (lib/score.ts computeEvidenceScore) so the number on screen
+// carries the freshness it is stated at. distinctAuthors and the feedback value come from the
+// meta row worker/feedback.ts wrote, read here as json rather than a second table.
+
+/** Everything a page needs to render one listing's score honestly and to recompute it. */
+export interface ScoreRead {
+  listingId: string
+  agentId: string
+  evidenceTier: EvidenceRung
+  lastProbeAt: number | null
+  updatedAt: number
+  clusterSize: number
+  firstParty: number
+  /** Stored by worker/score.ts. The sort key and the index value. */
+  scoreValue: number | null
+  scoreConfidence: number | null
+  /** getClients length: the distinct feedback authors, the honest sample size. */
+  distinctAuthors: number
+  /** getSummary count: total feedbacks, inflated by repeat authors. */
+  totalFeedbacks: number
+  /** getSummary aggregate value and its decimals (null when no feedback was read). */
+  feedbackValue: string | null
+  feedbackDecimals: number | null
+}
+
+const SCORE_READ_SELECT = `
+SELECT l.listingId, l.agentId, l.evidenceTier, l.lastProbeAt, l.updatedAt, l.firstParty,
+       l.scoreValue, l.scoreConfidence,
+       (SELECT COUNT(*) FROM agent s WHERE s.duplicateClusterId IS NOT NULL
+          AND s.duplicateClusterId = a.duplicateClusterId) AS clusterSize,
+       coalesce(CAST(json_extract(m.v, '$.clients') AS INTEGER), 0) AS distinctAuthors,
+       coalesce(CAST(json_extract(m.v, '$.count')   AS INTEGER), 0) AS totalFeedbacks,
+       json_extract(m.v, '$.value')    AS feedbackValue,
+       json_extract(m.v, '$.decimals') AS feedbackDecimals
+FROM listing l
+JOIN agent a ON a.chainId = l.chainId AND a.agentId = l.agentId
+LEFT JOIN meta m ON m.k = 'feedback.' || l.agentId`
+
+export function scoreReadFor(listingId: string): ScoreRead | null {
+  return one<ScoreRead>(`${SCORE_READ_SELECT} WHERE l.listingId = ?`, listingId)
+}
+
+export function scoreReadsFor(listingIds: string[]): Map<string, ScoreRead> {
+  const clean = [...new Set(listingIds)].slice(0, 8)
+  const out = new Map<string, ScoreRead>()
+  if (clean.length === 0) return out
+  const placeholders = clean.map(() => '?').join(',')
+  for (const r of many<ScoreRead>(`${SCORE_READ_SELECT} WHERE l.listingId IN (${placeholders})`, ...clean)) {
+    out.set(r.listingId, r)
+  }
+  return out
+}
+
+/**
+ * The shelf ordered by the evidence score's confidence floor, docs/06-QUALITY.md section 2's
+ * "default sort uses M_lo, never M". A row cannot outrank a better-evidenced one on a thin sample.
+ * First-party rows tie-break last, so being ours is never a ranking advantage. Nulls sort last, so a
+ * listing whose score has not been computed yet does not jump the queue.
+ */
+export interface ScoredCard extends ListingCard {
+  scoreValue: number | null
+  scoreConfidence: number | null
+  distinctAuthors: number
+}
+
+export function shelfByScore(shelf: Shelf, limit = 12): ScoredCard[] {
+  return many<ScoredCard>(
+    `SELECT l.listingId, l.agentId, l.category, l.evidenceTier, l.visibility,
+            a.name, a.description, a.owner, a.declaresX402, a.declaresActive,
+            l.inBazaar, l.priceBase, l.priceToken, l.priceDecimals, l.priceScheme,
+            l.lastProbeAt, l.lastProbeVerdict, l.firstParty,
+            l.scoreValue, l.scoreConfidence,
+            json_array_length(a.endpoints) AS endpointCount,
+            (SELECT COUNT(*) FROM agent s WHERE s.duplicateClusterId IS NOT NULL
+               AND s.duplicateClusterId = a.duplicateClusterId) AS clusterSize,
+            coalesce(CAST(json_extract(m.v, '$.clients') AS INTEGER), 0) AS distinctAuthors
+     FROM listing l
+     JOIN agent a ON a.chainId = l.chainId AND a.agentId = l.agentId
+     LEFT JOIN meta m ON m.k = 'feedback.' || l.agentId
+     WHERE l.chainId = ? AND l.category = ? AND l.visibility IN ('listed','indexed')
+     ORDER BY l.scoreConfidence IS NULL, l.scoreConfidence DESC, l.firstParty ASC, CAST(l.agentId AS INTEGER) ASC
+     LIMIT ?`,
+    CHAIN_ID,
+    shelf,
+    Math.min(limit, 60),
+  )
+}
