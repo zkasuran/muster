@@ -4,10 +4,11 @@
  *
  * Scope note, stated here rather than discovered later. docs/15-SYSTEM.md section 2.3
  * specifies nine collections. Five are built: agent, listing, probeResult, quote and job,
- * plus payment and receipt on the hire path. Four are deliberately not built in the time
- * available and each has a reason: session belongs to the Altana track, which
- * docs/decisions/17 dropped; ledgerEntry's seven-invariant hash chain, the ERC-8183 escrow
- * index and the retention reaper are all above the cut line in .hq/TASKS.md. Nothing renders
+ * plus payment and receipt on the hire path. The ledgerEntry hash chain is now built too:
+ * lib/ledger.ts keeps an append-only, hash-chained projection of the hireAttempt table with a
+ * walk() that recomputes every link. Three remain deliberately unbuilt for this entry and each
+ * has a reason: session belongs to the Altana track, which docs/decisions/17 dropped; the
+ * ERC-8183 escrow index and the retention reaper were cut for the time available. Nothing renders
  * a value it did not store, so the absence shows as unknown rather than as a wrong number.
  */
 
