@@ -74,8 +74,8 @@
       "id": "NOTICE",
       "path": "NOTICE",
       "kind": "file",
-      "sha256": "798b8238dda0c472f25aa44c09bb56b583a97627ec0fde977e6355e5ff3fb49a",
-      "bytes": 3238,
+      "sha256": "ac4eb2c581c7eebd3d4a67a358ba9284864f01f367ad3098aa6805be6b232c30",
+      "bytes": 3515,
       "lineage": "own",
       "license": "LicenseRef-zkasuran-SAND-1.0",
       "note": "names every third-party component with its own terms"

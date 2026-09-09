@@ -1,5 +1,5 @@
 import { Nav, Footer } from '@/components/nav'
-import { ago, num } from '@/components/fresh'
+import { ago } from '@/components/fresh'
 import { endpointCapability, tokenFacts, proxyFingerprints } from '@/lib/stack'
 import { CHAIN } from '@/lib/constants'
 

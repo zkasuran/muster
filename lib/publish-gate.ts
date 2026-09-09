@@ -124,7 +124,9 @@ export function runtimeFetchHosts(root: string): string[] {
       if (typeof f !== 'string' || !f.endsWith('.ts') || f.endsWith('.test.ts')) continue
       const text = readFileSync(join(root, d, f), 'utf8')
       for (const m of text.matchAll(/https?:\/\/([a-zA-Z0-9.-]+)/g)) {
-        const h = m[1]
+        // Strip trailing dots and dashes: a URL that ends a sentence in a comment captures the
+        // sentence period as part of the host, which is not a distinct host.
+        const h = (m[1] ?? '').replace(/[.-]+$/, '')
         if (h && !isIgnoredHost(h)) hosts.add(h)
       }
     }

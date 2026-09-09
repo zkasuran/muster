@@ -21,6 +21,10 @@ MIT requires this notice to travel with any copy, so the full licence text is re
 **React**, MIT, Copyright (c) Meta Platforms, Inc. and affiliates.
 **Tailwind CSS**, MIT, Copyright (c) Tailwind Labs, Inc.
 **lucide**, ISC, Copyright (c) for portions derived from Feather, Cole Bemis.
+**viem**, MIT, Copyright (c) 2023-present weth, LLC. The chain reads, the EIP-712 typed data and the
+signature recovery run through it.
+**clsx**, MIT, Copyright (c) Luke Edwards. **tailwind-merge**, MIT, Copyright (c) Dany Castillo. Both
+compose class names in the components.
 
 Node 22 ships `node:sqlite`, so the store adds no third-party driver and no extra grant.
 

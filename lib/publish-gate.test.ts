@@ -95,24 +95,21 @@ test('the gate runs against the repo and reports the truth', () => {
     return c
   }
 
-  // Three checks hold on the current tree.
+  // All four checks hold on the current tree.
   assert.equal(get('license').ok, true, get('license').detail)
   assert.equal(get('dataSources').ok, true, get('dataSources').detail)
   assert.deepEqual(get('dataSources').missing, [])
   assert.equal(get('privatePaths').ok, true, get('privatePaths').detail)
   assert.deepEqual(get('privatePaths').missing, [])
 
-  // The NOTICE check surfaces the real gap: three MIT runtime deps have no NOTICE row. This is the
-  // one thing a human must fix before the public flip, and the gate says so rather than hiding it.
-  assert.equal(get('notice').ok, false)
-  for (const d of ['clsx', 'tailwind-merge', 'viem']) {
-    assert.ok(get('notice').missing?.includes(d), `expected NOTICE to be missing ${d}`)
-  }
+  // NOTICE now lists every bundled runtime dependency, so the notice check passes too.
+  assert.equal(get('notice').ok, true, get('notice').detail)
+  assert.deepEqual(get('notice').missing, [])
 
-  // Every check's ok agrees with its own missing list, and NOTICE is the only blocker today.
+  // Every check's ok agrees with its own missing list, and nothing blocks the flip today.
   for (const c of r.checks) {
     if (c.missing !== undefined) assert.equal(c.ok, c.missing.length === 0, `${c.name} ok disagrees with missing`)
   }
-  assert.deepEqual(r.blocking, ['notice'])
-  assert.equal(r.ok, false)
+  assert.deepEqual(r.blocking, [])
+  assert.equal(r.ok, true)
 })

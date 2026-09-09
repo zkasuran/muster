@@ -1,7 +1,6 @@
 import { Nav, Footer } from '@/components/nav'
 import { SCORE_CONSTANTS, MU_C_CLAMP, LAMBDA_PER_DAY, computeScore, type CountedJob } from '@/lib/score'
 import { db } from '@/lib/db'
-import { CHAIN } from '@/lib/constants'
 
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Quality methodology' }
