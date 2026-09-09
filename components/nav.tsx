@@ -49,6 +49,10 @@ export function Nav() {
           <Link href="/stack" className="text-ink-dim hover:text-brand">
             Stack
           </Link>
+          {/* [doc 10] the public docs site: how it works, conformance, schemas and policy */}
+          <Link href="/docs" className="text-ink-dim hover:text-brand">
+            Docs
+          </Link>
         </nav>
         <form action="/search" method="get" className="ml-auto flex items-center gap-2">
           <label htmlFor="q" className="sr-only">
