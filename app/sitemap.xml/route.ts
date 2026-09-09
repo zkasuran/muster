@@ -30,6 +30,7 @@ export async function GET(req: NextRequest) {
     '/docs',
     '/list-agent',
     '/llms.txt',
+    '/agents.md',
   ]
 
   const urls = paths

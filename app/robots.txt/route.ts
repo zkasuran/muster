@@ -19,7 +19,8 @@ export async function GET(req: NextRequest) {
   const origin = publicOrigin(req.headers, new URL(req.url).origin)
   const body = [
     '# Muster — a marketplace for ERC-8004 agents on BNB Smart Chain.',
-    '# Programs are welcome. See llms.txt for a curated, machine-readable index.',
+    '# Programs are welcome. See llms.txt for a curated, machine-readable index',
+    '# and agents.md for the safe-access contract.',
     '',
     'User-agent: *',
     'Allow: /',

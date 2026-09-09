@@ -32,13 +32,14 @@ export async function GET(req: NextRequest) {
 > an unmeasured value reads \`unknown\`, never \`0\`.
 
 Muster is read by programs by design. Every page is server rendered and readable with scripting off.
-This file indexes what an agent or a language model can reach; the paid endpoints answer 402 rather
-than content, and the boundaries below are the ones the code enforces.
+This file indexes what an agent or a language model can reach; see [AGENTS.md](${o}/agents.md) for the
+safe-access contract and the abuse boundaries the code enforces.
 
 ## Start here
 
 - [Landing](${o}/): the measured population — how many agents are registered, how many publish a callable endpoint, how many are provably payable on BSC — with the block each figure was read at.
 - [Status](${o}/status): live index lag, rung counts, probe cycle results, hire attempts and the facilitator's on-chain balance. This is where the site states, live, what has and has not been proven.
+- [AGENTS.md](${o}/agents.md): the safe-access contract for programs — the free preview, the x402 payment flow, and the abuse boundaries the code enforces on both the buyer and the listed endpoint.
 
 ## The four shelves
 
