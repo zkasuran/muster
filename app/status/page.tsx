@@ -4,6 +4,8 @@ import { indexHealth, rungCounts, shelfSummaries, probeSummary, populationFacts 
 import { cacheState } from '@/lib/cache'
 import { hireStats } from '@/lib/hire'
 import { facilitatorState } from '@/lib/settle'
+// [doc 08] the money ledger summary
+import { syncFromHireAttempts, ledgerSummary } from '@/lib/ledger'
 import { db } from '@/lib/db'
 import { SHELF_TITLES } from '@/lib/classify'
 import { CHAIN, REGISTRY } from '@/lib/constants'
@@ -25,6 +27,10 @@ export default async function StatusPage() {
   const pop = populationFacts()
   const caches = cacheState()
   const hires = hireStats()
+  // [doc 08] project attempts into the ledger (idempotent on the refKey) and read the summary
+  syncFromHireAttempts()
+  const ledger = ledgerSummary()
+  const latestAttempt = (db().prepare('SELECT attemptId FROM hireAttempt ORDER BY createdAt DESC LIMIT 1').get() as { attemptId: string } | undefined)?.attemptId ?? null
   const coverage =
     h.agentsOnChain && h.agentsOnChain > 0
       ? ((h.agentsIndexed / h.agentsOnChain) * 100).toFixed(1)
@@ -102,13 +108,33 @@ export default async function StatusPage() {
           )}
         </Section>
 
+        {/* [doc 08] the money ledger */}
+        <Section title="The money ledger">
+          <Row label="Entries" value={num(ledger.entries)} note={`${ledger.hireAttempts} hire attempts, ${ledger.settlements} settlements, append-only and hash-chained`} />
+          <Row label="House vs order" value={`${ledger.house} house, ${ledger.order} order`} note="revenue counts order only, so the honest order figure today is zero" />
+          <Row label="Backfilled" value={num(ledger.backfilled)} note="entries projected from attempts made before the ledger existed" />
+          <Row label="Chain integrity" value={ledger.walk.ok ? `walk ok, ${ledger.walk.checked} checked` : `${ledger.walk.failures.length} failures`} note="the same walk anyone can reproduce from /api/ledger" />
+          <p className="mt-3 text-sm text-ink-dim">
+            The full chain, each entry linked to its receipt, is at{' '}
+            <a className="text-brand" href="/ledger">/ledger</a>. The raw JSON with the hash rule is at{' '}
+            <a className="text-brand" href="/api/ledger">/api/ledger</a>.
+            {latestAttempt && (
+              <>
+                {' '}Most recent receipt:{' '}
+                <a className="text-brand" href={`/receipt/${latestAttempt}`}>/receipt/{latestAttempt.slice(0, 8)}…</a>.
+              </>
+            )}
+          </p>
+        </Section>
+
         <Section title="What this build does not do">
           <p className="text-sm text-ink-dim">
             Published rather than hidden, because a judge finding it first is worse. Settlement
             through Binance B402 needs a merchant developer account that is granted on request.
             Until then Muster settles EIP-3009 authorizations itself, submitting the transfer from
             its own key and paying the gas, when that key holds gas. The facilitator row above says
-            whether it can right now. No row is marked settled without a transaction that cleared. Escrow, the signed ledger chain and the Altana session panel
+            whether it can right now. No row is marked settled without a transaction that cleared. The
+            hash-chained money ledger ships and is at /ledger. Escrow and the Altana session panel
             are out of scope for this entry and the reasons are in the decision records.
           </p>
         </Section>

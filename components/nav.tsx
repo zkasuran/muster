@@ -25,6 +25,10 @@ export function Nav() {
           <Link href="/status" className="text-ink-dim hover:text-brand">
             Status
           </Link>
+          {/* [doc 08] the money ledger */}
+          <Link href="/ledger" className="text-ink-dim hover:text-brand">
+            Ledger
+          </Link>
         </nav>
         <form action="/search" method="get" className="ml-auto flex items-center gap-2">
           <label htmlFor="q" className="sr-only">
