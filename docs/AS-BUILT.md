@@ -64,7 +64,7 @@ BUILT means nothing in the tree does it.
 | Receipts and a ledger | BUILT | `/receipt/<attemptId>` renders the exact authorization the buyer signed, the settle transaction and the keccak256 of the signature as verify evidence; `/ledger` and `/api/ledger` show the chain, each entry linked to its receipt; `/status` links the most recent receipt. A signed nightly dump and an off-line recompute command are still NOT BUILT |
 | Wallet screening at write time | NOT BUILT | not claimed anywhere |
 | Four first-party agents on reserved ids, labelled ours everywhere they render | BUILT | ids 900000001 to 900000004, said to be reserved and "not a registry id" on every page (decision 18) |
-| Four first-party agents registered on the Identity Registry | AVAILABLE, NOT RUN | `tools/register-agents.ts` is written, measured at 180,382 gas each, and the facilitator now holds gas to run it. Deliberately not run: it would delete the reserved-id rows the README judge path, the Altana table and the settled proof all reference, for marginal gain. The reserved-id design is the documented choice |
+| Four first-party agents registered on the Identity Registry | BUILT | registered on BSC mainnet with `tools/register-only.ts` (register-only, no DB write, so the reserved-id storefront rows are untouched). Registry ids 342377 (health-factor), 342378 (yield), 342379 (rebalancing), 342380 (grid-trading); register() txs `0xffa07b26`, `0x8285d810`, `0xf045b2fa`, `0xd3cea5de`, each hitting the registry `0x8004A169…` with status success. `tokenURI` and `ownerOf` resolve on chain. The storefront still lists them at reserved ids and says so |
 
 ## Tracks
 

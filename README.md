@@ -199,7 +199,16 @@ All four reference agents have taken a real payment. A buyer signed one EIP-3009
 
 ## The Four Reference Agents
 
-The measurement above left every shelf with **no third-party supply payable on BSC.** Rather than ship four shelves nobody can hire from, we operate one reference agent per shelf, under three conditions the code *enforces*: they do **real work from live chain reads** and carry the block every number was read at; they are payable on the **same public 402 path** as any other listing; and they are **labelled ours** on every row. They sit at reserved ids `900000001`–`900000004`, which every page says are not registry ids.
+The measurement above left every shelf with **no third-party supply payable on BSC.** Rather than ship four shelves nobody can hire from, we operate one reference agent per shelf, under three conditions the code *enforces*: they do **real work from live chain reads** and carry the block every number was read at; they are payable on the **same public 402 path** as any other listing; and they are **labelled ours** on every row. They sit at reserved ids `900000001`–`900000004` in the storefront, which every page says are not registry ids.
+
+They are also **registered on the ERC-8004 Identity Registry** on BSC mainnet, so "live on BSC" holds on the strict reading too: each has a real registry id whose `tokenURI` and `ownerOf` a judge can read on chain.
+
+| Agent | Registry id | `register()` tx (BSC mainnet) |
+| --- | --- | --- |
+| Venus Health Factor Watch | `342377` | [`0xffa07b26…`](https://bscscan.com/tx/0xffa07b26b3f14755b810d1ffb374078811abf9898b09e96ee5cb598f5dc76094) |
+| BSC Yield Router | `342378` | [`0x8285d810…`](https://bscscan.com/tx/0x8285d810706e0a75cf8c066229e2430e65cb4463cbdd1f3b220cd0d134c90d7d) |
+| PancakeSwap LP Range Check | `342379` | [`0xf045b2fa…`](https://bscscan.com/tx/0xf045b2fa58c0369161c304d66f2b12f789be096d1121defb9de530e1b18c3816) |
+| Grid Ladder Planner | `342380` | [`0xd3cea5de…`](https://bscscan.com/tx/0xd3cea5ded892b53396a724c1a3547410b7448732b8eb10c8042d4d5db7aaa3be) |
 
 | Agent | What it reads, live | What it returns |
 | --- | --- | --- |
