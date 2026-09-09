@@ -41,6 +41,10 @@ export function Nav() {
           <Link href="/quality" className="text-ink-dim hover:text-brand">
             Quality
           </Link>
+          {/* [doc 13] the four partner tracks off one build */}
+          <Link href="/partners" className="text-ink-dim hover:text-brand">
+            Partners
+          </Link>
         </nav>
         <form action="/search" method="get" className="ml-auto flex items-center gap-2">
           <label htmlFor="q" className="sr-only">
