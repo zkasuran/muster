@@ -114,3 +114,8 @@ BUILT means nothing in the tree does it.
   are columns nothing writes. Its rule at l.31 that a number without freshness, sample size and
   interval is not shown applies to scored numbers only; counts on the landing page carry a block
   and a date and no interval.
+* `10-DOCS-AND-POLICY.md` assigns the id sweep to `bsc.rpc.blxrbdn.com` and calls
+  `bsc-dataseed.binance.org` off the shipped path. As built, bulk reads go to the dataseed endpoints
+  BNB Chain publishes for programs, under their stated 10K per 5 minutes. PublicNode carries
+  single reads only. `DATA-SOURCES.md` is the current table and the tail sweep of 2026-09-09 ran on
+  those endpoints with written equal to read.

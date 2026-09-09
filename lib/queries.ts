@@ -39,7 +39,13 @@ export interface IndexHealth {
 }
 
 export function indexHealth(): IndexHealth {
-  const agents = one<{ c: number }>('SELECT COUNT(*) c FROM agent WHERE chainId = ?', CHAIN_ID)
+  // Our four reference agents sit on reserved ids that are not on the registry, so they are
+  // kept out of the indexed count. Indexed must never read higher than registered.
+  const agents = one<{ c: number }>(
+    `SELECT COUNT(*) c FROM agent WHERE chainId = ?
+     AND agentId NOT IN (SELECT agentId FROM listing WHERE firstParty = 1)`,
+    CHAIN_ID,
+  )
   const run = one<{
     finishedAt: number | null
     startedAt: number
