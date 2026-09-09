@@ -40,14 +40,11 @@ export default async function HirePage({ params }: { params: Promise<{ shelf: st
 
   return (
     <>
-      <Nav />
+      <Nav active={agent.slug} />
       <main className="mx-auto max-w-4xl px-5 py-10 md:px-8">
-        <p className="text-xs uppercase tracking-wide text-ink-faint">
-          Hire · {SHELF_TITLES[agent.slug]} ·{' '}
-          <span className="rounded-sm border border-warn/50 px-1.5 text-warn">operated by us</span>
-        </p>
-        <h1 className="mt-2 font-display text-3xl md:text-4xl">{agent.name}</h1>
-        <p className="mt-3 max-w-2xl text-ink-dim">{agent.summary}</p>
+        <p className="eyebrow">Hire · {SHELF_TITLES[agent.slug]} · <span className="text-warn">operated by us</span></p>
+        <h1 className="mt-4 h-section text-3xl md:text-4xl">{agent.name}</h1>
+        <p className="mt-3 max-w-2xl text-lg text-ink-soft">{agent.summary}</p>
 
         <section className="mt-8 grid gap-4 md:grid-cols-3">
           <Fact k="Price per call" v={price} />

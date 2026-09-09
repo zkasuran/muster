@@ -59,16 +59,16 @@ export default async function AgentPage({ params }: { params: Promise<{ id: stri
 
   return (
     <>
-      <Nav />
+      <Nav active={a.category} />
       <main className="mx-auto max-w-6xl px-5 py-10 md:px-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="font-display text-3xl md:text-4xl">
+            <h1 className="h-section text-3xl md:text-4xl">
               {a.name ?? <span className="unknown">unnamed agent</span>}
             </h1>
-            <p className="num mt-1 text-sm text-ink-faint">
+            <p className="num mt-2 text-sm text-ink-faint">
               {reserved ? `reserved id ${a.agentId}, not a registry id` : `agent id ${a.agentId} on BNB Smart Chain`}
-              {ours && <span className="ml-2 rounded-sm border border-warn/50 px-1.5 text-warn">operated by us</span>}
+              {ours && <span className="ml-2 pill pill-warn">operated by us</span>}
             </p>
           </div>
           <div className="mt-2 flex flex-col items-end gap-2">
@@ -78,7 +78,7 @@ export default async function AgentPage({ params }: { params: Promise<{ id: stri
         </div>
 
         {a.description ? (
-          <p className="mt-4 max-w-3xl text-ink-dim">{a.description}</p>
+          <p className="mt-4 max-w-3xl text-lg text-ink-soft">{a.description}</p>
         ) : (
           <p className="mt-4 unknown">Its registration record carries no description.</p>
         )}

@@ -173,3 +173,79 @@ html.light .hero-field {
 .tile-yield       { --tile-hue: rgba(31, 169, 122, 0.12); --tile-edge: var(--color-up); }
 .tile-health-factor { --tile-hue: rgba(228, 87, 76, 0.12); --tile-edge: var(--color-down); }
 .tile-grid-trading  { --tile-hue: rgba(139, 151, 166, 0.12); --tile-edge: var(--color-ink-dim); }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Presentation system, 2026-09-09. Raises hierarchy and cohesion across every
+   page WITHIN the documented constraints (decision 16): flat surfaces, no
+   shadow/glow/glass, the one .hero-field gradient is still the only gradient,
+   md: is still the only breakpoint, palette tokens only, border-based focus.
+   Nothing here adds a colour or a shadow; it is type scale, spacing rhythm,
+   borders and the existing token hues used with intent.
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* An eyebrow: the small brand-tinted label above a heading. One rule so every
+   section leads the same way instead of each page inventing a muted caption. */
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem; line-height: 1; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--color-ink-dim);
+}
+.eyebrow::before {
+  content: ""; width: 1.5rem; height: 2px; border-radius: 1px; background: var(--color-brand);
+}
+
+/* The display scale, so a page has a clear first, second and third voice rather
+   than three headings at the same weight. Serif display, tight leading. */
+.h-hero   { font-family: var(--font-display); font-size: clamp(2.7rem, 6vw, 4.5rem); line-height: 1.02; letter-spacing: -0.02em; }
+.h-section{ font-family: var(--font-display); font-size: clamp(1.9rem, 3vw, 2.6rem); line-height: 1.08; letter-spacing: -0.01em; }
+.h-card   { font-family: var(--font-display); font-size: 1.6rem; line-height: 1.12; letter-spacing: -0.01em; }
+
+/* Section rhythm: a consistent vertical gap between major sections, so the page
+   breathes evenly instead of every section picking its own mt-14. */
+.section  { margin-top: clamp(3rem, 6vw, 5rem); }
+.section-tight { margin-top: clamp(2rem, 4vw, 3rem); }
+
+/* The header for a section: eyebrow + heading + optional trailing link, aligned
+   on one baseline. Replaces the ad-hoc flex/justify-between repeated per page. */
+.section-lead { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+
+/* A feature card: a card that carries a brand hairline down its leading edge, for
+   the one or two surfaces per page that should pull the eye. Flat fill, one 3px
+   border accent — not a shadow, not a glow. */
+.feature { position: relative; overflow: hidden; }
+.feature::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--color-brand);
+}
+
+/* A stat tile: one measured number with its label, in a tight grid. The number is
+   mono and large, the label is faint and small, so a strip of them reads as a
+   dashboard rather than a paragraph. Used for the live market panel and counts. */
+.stat { display: flex; flex-direction: column; gap: 0.15rem; }
+.stat-num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 1.6rem; line-height: 1; color: var(--color-ink); }
+.stat-label { font-size: 0.72rem; letter-spacing: 0.02em; color: var(--color-ink-dim); }
+
+/* A pill badge, one shape for the many status labels (ours, hireable, rung, rail).
+   Hue is set by a modifier so the semantic tokens carry meaning consistently. */
+.pill {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  border: 1px solid var(--color-line); border-radius: 999px;
+  padding: 0.1rem 0.55rem; font-size: 0.72rem; line-height: 1.4; white-space: nowrap;
+  color: var(--color-ink-soft);
+}
+.pill-brand { border-color: color-mix(in srgb, var(--color-brand) 50%, transparent); color: var(--color-brand); }
+.pill-up    { border-color: color-mix(in srgb, var(--color-up) 50%, transparent); color: var(--color-up); }
+.pill-warn  { border-color: color-mix(in srgb, var(--color-warn) 55%, transparent); color: var(--color-warn); }
+
+/* A hairline divider that matches the soft line token, for inside cards. */
+.hr-soft { border: 0; border-top: 1px solid var(--color-line-soft); }
+
+/* The sticky header gets a faint brand underglow line at its base — a 1px brand
+   hairline, not a glow — so the chrome reads as intentional. */
+.nav-bar { position: sticky; top: 0; z-index: 40; background: var(--color-canvas); border-bottom: 1px solid var(--color-line); }
+.nav-link { position: relative; color: var(--color-ink-soft); }
+.nav-link:hover { color: var(--color-brand); }
+.nav-link[data-active="true"] { color: var(--color-ink); }
+.nav-link[data-active="true"]::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -1.05rem; height: 2px; background: var(--color-brand); border-radius: 1px;
+}

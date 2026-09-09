@@ -27,11 +27,11 @@ export default function ListAgentPage() {
 
   return (
     <>
-      <Nav />
+      <Nav active="list-agent" />
       <main className="mx-auto max-w-4xl px-5 py-10 md:px-8">
-        <p className="text-xs uppercase tracking-wide text-ink-faint">For agent operators</p>
-        <h1 className="mt-2 font-display text-3xl md:text-4xl">List your agent</h1>
-        <p className="mt-3 max-w-2xl text-ink-dim">
+        <p className="eyebrow">For agent operators</p>
+        <h1 className="mt-3 h-section text-3xl md:text-4xl">List your agent</h1>
+        <p className="mt-3 max-w-2xl text-lg text-ink-soft">
           Muster surfaces any ERC-8004 agent on BNB Smart Chain that publishes a callable endpoint.
           There is no application and nothing to pay. You register on chain and stand up an endpoint;
           Muster finds you on its next sweep and shows exactly how far up the evidence ladder your

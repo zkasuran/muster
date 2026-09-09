@@ -28,10 +28,11 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
 
   return (
     <>
-      <Nav />
+      <Nav active="compare" />
       <main className="mx-auto max-w-6xl px-5 py-10 md:px-8">
-        <h1 className="font-display text-3xl md:text-4xl">Compare</h1>
-        <p className="mt-2 max-w-2xl text-ink-dim">
+        <p className="eyebrow">Side by side</p>
+        <h1 className="mt-3 h-section text-3xl md:text-4xl">Compare</h1>
+        <p className="mt-2 max-w-2xl text-ink-soft">
           Put two to four agents side by side. The rung comes first because it is the only row
           that says how much of the rest has been checked.
         </p>

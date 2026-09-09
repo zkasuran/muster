@@ -97,17 +97,24 @@ export default async function ShelfPage({ params, searchParams }: { params: Prom
 
   return (
     <>
-      <Nav />
-      <main className="mx-auto max-w-6xl px-5 py-8 md:px-8">
-        <div className="flex flex-wrap items-end justify-between gap-4">
+      <Nav active={shelf} />
+      <main className="mx-auto max-w-6xl px-5 py-10 md:px-8">
+        <div className="section-lead">
           <div className="min-w-0">
-            <p className="text-sm text-ink-dim">{JOB_LINE[shelf]}</p>
-            <h1 className="mt-1 font-display text-4xl md:text-5xl">{contract.title}</h1>
-            <p className="mt-2 max-w-2xl text-sm text-ink-faint">{contract.question}</p>
+            <p className="eyebrow">Capability shelf</p>
+            <h1 className="mt-3 h-section text-4xl md:text-5xl">{contract.title}</h1>
+            <p className="mt-2 max-w-2xl text-sm text-ink-dim">{JOB_LINE[shelf]}</p>
+            <p className="mt-1 max-w-2xl text-sm text-ink-faint">{contract.question}</p>
           </div>
-          <div className="flex items-center gap-2 text-xs text-ink-faint">
-            <span className="num text-2xl text-ink">{num(all)}</span> on this shelf ·
-            <span className="num text-brand">{num(rungs.payable + rungs.settled)}</span> hireable
+          <div className="flex items-end gap-4">
+            <div className="stat">
+              <span className="stat-num">{num(all)}</span>
+              <span className="stat-label">on this shelf</span>
+            </div>
+            <div className="stat">
+              <span className="stat-num text-brand">{num(rungs.payable + rungs.settled)}</span>
+              <span className="stat-label">hireable</span>
+            </div>
           </div>
         </div>
 
@@ -115,12 +122,12 @@ export default async function ShelfPage({ params, searchParams }: { params: Prom
             first move is to hire or try it free, not to read a directory. This is the same agent the
             landing card offers; the list below is for comparing the rest of the category against it. */}
         {hireAgent && (
-          <div className="mt-6 card flex flex-wrap items-center justify-between gap-4 p-5">
+          <div className="mt-6 card feature flex flex-wrap items-center justify-between gap-4 p-5">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="font-display text-2xl text-ink">{hireAgent.name}</span>
-                <span className="rounded-sm border border-warn/50 px-1.5 text-xs text-warn">ours</span>
-                <span className="rounded-md border border-up/40 px-2 py-0.5 text-xs text-up">hireable now</span>
+                <span className="h-card text-ink">{hireAgent.name}</span>
+                <span className="pill pill-warn">ours</span>
+                <span className="pill pill-up">hireable now</span>
               </div>
               <p className="mt-1 max-w-2xl text-sm text-ink-dim">{hireAgent.summary}</p>
             </div>

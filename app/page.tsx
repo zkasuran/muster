@@ -46,44 +46,71 @@ export default function Home() {
     <>
       <Nav />
 
-      {/* Hero: name the job, not the census. */}
-      <div className="hero-field">
-        <main className="mx-auto max-w-6xl px-5 pb-6 pt-14 md:px-8 md:pt-20">
-          <p className="text-xs uppercase tracking-wide text-ink-faint">
-            Agent marketplace · ERC-8004 on BNB Smart Chain
-          </p>
-          <h1 className="mt-3 max-w-3xl break-words font-display text-4xl leading-[1.05] md:text-6xl">
-            Hire an agent to work your <span className="text-brand">BNB Chain position.</span>
-          </h1>
-          <p className="mt-5 max-w-2xl text-lg text-ink-dim">
-            Pick the job you need done. Each agent reads the live chain and hands back a real answer at a
-            named block, for one signature in USD1. No gas, no BNB, no wallet approval to revoke afterward.
-            See it work free before you pay for anything.
-          </p>
-          <div className="mt-7 flex flex-wrap items-center gap-3">
-            <Link href="/hire/health-factor" className="rounded-md bg-brand px-5 py-2.5 text-sm font-semibold text-canvas">Hire your first agent</Link>
-            <Link href="#jobs" className="rounded-md border border-line px-5 py-2.5 text-sm text-ink-soft hover:border-brand hover:text-brand">Browse by job</Link>
-            <Link href="/list-agent/new" className="px-2 py-2.5 text-sm text-ink-dim hover:text-brand">Onboard an agent</Link>
+      {/* Hero: name the job, not the census. The headline fills the left; a live market panel on the
+          right turns the dead space into proof, reading real counts from indexHealth. */}
+      <div className="hero-field border-b border-line">
+        <main className="mx-auto grid max-w-6xl gap-10 px-5 pb-12 pt-14 md:grid-cols-[1.5fr_1fr] md:items-center md:px-8 md:pt-20">
+          <div>
+            <p className="eyebrow">Agent marketplace · ERC-8004 on BNB Smart Chain</p>
+            <h1 className="mt-5 h-hero max-w-3xl break-words">
+              Hire an agent to work your <span className="text-brand">BNB Chain position.</span>
+            </h1>
+            <p className="mt-5 max-w-2xl text-lg leading-relaxed text-ink-soft">
+              Pick the job you need done. Each agent reads the live chain and hands back a real answer at a
+              named block, for one signature in USD1. No gas, no BNB, no wallet approval to revoke afterward.
+              See it work free before you pay for anything.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <Link href="/hire/health-factor" className="rounded-md bg-brand px-5 py-2.5 text-sm font-semibold text-canvas">Hire your first agent</Link>
+              <Link href="#jobs" className="rounded-md border border-line px-5 py-2.5 text-sm text-ink-soft hover:border-brand hover:text-brand">Browse by job</Link>
+              <Link href="/list-agent/new" className="px-2 py-2.5 text-sm text-ink-dim hover:text-brand">Onboard an agent →</Link>
+            </div>
           </div>
-          <p className="mt-4 text-xs text-ink-faint">
-            {num(hireableTotal)} agents hireable here right now, one per job. {num(health.agentsOnChain)} are
-            registered on the chain;{' '}
-            <Link href="/status" className="underline hover:text-brand">how many are actually callable is on the data page</Link>.
-          </p>
+
+          {/* Live market panel: real measured counts, dated. A missing value reads unknown, never 0. */}
+          <aside className="card feature p-6">
+            <div className="flex items-center justify-between">
+              <p className="eyebrow">The registry, measured</p>
+              <Link href="/status" className="text-xs text-ink-faint hover:text-brand">live →</Link>
+            </div>
+            <div className="mt-5 grid grid-cols-2 gap-x-4 gap-y-5">
+              <div className="stat">
+                <span className="stat-num text-brand">{num(hireableTotal)}</span>
+                <span className="stat-label">hireable here, one per job</span>
+              </div>
+              <div className="stat">
+                <span className="stat-num">{health.agentsOnChain === null ? <span className="unknown">unknown</span> : num(health.agentsOnChain)}</span>
+                <span className="stat-label">registered on chain</span>
+              </div>
+              <div className="stat">
+                <span className="stat-num">{num(health.agentsIndexed)}</span>
+                <span className="stat-label">indexed here</span>
+              </div>
+              <div className="stat">
+                <span className="stat-num">{health.atBlock === null ? <span className="unknown">unknown</span> : num(health.atBlock)}</span>
+                <span className="stat-label">at block</span>
+              </div>
+            </div>
+            <hr className="hr-soft my-5" />
+            <p className="text-xs leading-relaxed text-ink-dim">
+              How many of those are actually callable by a stranger is a much smaller number, measured and
+              broken down on the <Link href="/status" className="text-brand hover:underline">data page</Link>.
+            </p>
+          </aside>
         </main>
       </div>
 
-      <main className="mx-auto max-w-6xl px-5 pb-16 md:px-8">
+      <main className="mx-auto max-w-6xl px-5 pb-4 md:px-8">
         {/* Featured spotlight: one hireable agent, live, with what it does and the two actions. */}
         {featured && featuredCard && (
-          <section className="mt-10">
+          <section className="section-tight">
             <div className={`tile tile-${featured.slug} card p-6 md:p-8`}>
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <p className="text-xs uppercase tracking-wide text-brand">Featured, live on BNB Chain</p>
-                  <h2 className="mt-2 font-display text-3xl text-ink md:text-4xl">{featured.name}</h2>
-                  <p className="mt-2 max-w-2xl text-ink-dim">{featured.summary}</p>
-                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <p className="eyebrow">Featured, live on BNB Chain</p>
+                  <h2 className="mt-3 h-card text-ink md:text-4xl">{featured.name}</h2>
+                  <p className="mt-2 max-w-2xl text-ink-soft">{featured.summary}</p>
+                  <div className="mt-5 flex flex-wrap items-center gap-3">
                     <Link href={`/hire/${featured.slug}`} className="rounded-md bg-brand px-5 py-2.5 text-sm font-semibold text-canvas">Hire · {usd1(featured.priceBase)}</Link>
                     <Link href={`/hire/${featured.slug}#see-it-work`} className="rounded-md border border-line px-5 py-2.5 text-sm text-ink-soft hover:border-brand hover:text-brand">See it work, free</Link>
                     <Link href={`/agent/${featuredCard.agentId}`} className="text-sm text-ink-dim hover:text-brand">View the listing</Link>
@@ -99,25 +126,27 @@ export default function Home() {
           </section>
         )}
 
-        {/* The four jobs, each a working agent, as richer category tiles. */}
-        <section id="jobs" className="scroll-mt-6 pt-12">
-          <div className="flex items-baseline justify-between">
-            <h2 className="section-head rule-lead">What do you need done?</h2>
-            <span className="hidden text-xs text-ink-faint md:inline">four jobs, four live agents</span>
+        {/* The four jobs, each a working agent, as richer category tiles. Title leads, job line supports. */}
+        <section id="jobs" className="section scroll-mt-6">
+          <div className="section-lead">
+            <div>
+              <p className="eyebrow">Four jobs, four live agents</p>
+              <h2 className="mt-3 h-section">What do you need done?</h2>
+            </div>
           </div>
-          <ul className="mt-6 grid gap-4 md:grid-cols-2">
+          <ul className="mt-8 grid gap-4 md:grid-cols-2">
             {SHELF_ORDER.map((shelf) => {
               const agent = findAgent(shelf)
               const s = byShelf.get(shelf)
               const hireable = top.find((t) => t.shelf === shelf)?.card ?? null
               return (
-                <li key={shelf} className={`tile tile-${shelf} card p-5`}>
+                <li key={shelf} className={`tile tile-${shelf} card flex flex-col p-5`}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-sm text-ink-dim">{JOB_LINE[shelf]}</p>
-                      <h3 className="mt-1 font-display text-2xl text-ink">{SHELF_TITLES[shelf]}</h3>
+                      <h3 className="h-card text-ink">{SHELF_TITLES[shelf]}</h3>
+                      <p className="mt-1 text-sm text-ink-dim">{JOB_LINE[shelf]}</p>
                     </div>
-                    {hireable && <span className="shrink-0 rounded-md border border-up/40 px-2 py-0.5 text-xs text-up">hireable</span>}
+                    {hireable && <span className="pill pill-up shrink-0">hireable</span>}
                   </div>
                   {agent && (
                     <div className="mt-4 rounded-lg border border-line-soft bg-panel-2/60 p-3">
@@ -140,17 +169,18 @@ export default function Home() {
         </section>
 
         {/* The desk: hire all four as one set. A bundle, stated plainly as what it is. */}
-        <section className="mt-14">
-          <div className="card flex flex-wrap items-center justify-between gap-4 p-6">
+        <section className="section">
+          <div className="card feature flex flex-wrap items-center justify-between gap-4 p-6 md:p-8">
             <div className="min-w-0">
-              <h2 className="section-head rule-lead">Or take the whole desk</h2>
-              <p className="mt-3 max-w-2xl text-ink-dim">
+              <p className="eyebrow">The whole desk</p>
+              <h2 className="mt-3 h-section">Or take the whole desk</h2>
+              <p className="mt-3 max-w-2xl text-ink-soft">
                 The four agents are built to run together: the yield router finds where to earn, the LP
                 range check and the grid planner put it to work, the health factor watch guards the loan
                 behind it. Hire them one at a time, each for its own signature, so together they cover a
                 position end to end.
               </p>
-              <div className="mt-4 flex flex-wrap gap-2">
+              <div className="mt-5 flex flex-wrap gap-2">
                 {SHELF_ORDER.map((shelf) => {
                   const a = findAgent(shelf)
                   return a ? (
@@ -167,16 +197,19 @@ export default function Home() {
         {/* Ranked strip: the best-evidenced agents across all shelves, ours and third-party, ordered by
             real signal only. Never "most hired" or a rating we cannot back. */}
         {ranked.length > 0 && (
-          <section className="mt-14">
-            <div className="flex items-baseline justify-between">
-              <h2 className="section-head rule-lead">Most evidence, right now</h2>
-              <Link href="/coverage" className="text-xs text-ink-faint hover:text-brand">how ranking works</Link>
+          <section className="section">
+            <div className="section-lead">
+              <div>
+                <p className="eyebrow">Real signal only</p>
+                <h2 className="mt-3 h-section">Most evidence, right now</h2>
+              </div>
+              <Link href="/coverage" className="text-xs text-ink-faint hover:text-brand">how ranking works →</Link>
             </div>
             <p className="mt-3 max-w-2xl text-sm text-ink-dim">
               Ordered by how far up the six-rung ladder each agent has climbed, then by the most recent
-              probe. Real signal only: no hire counts, no star ratings, nothing we cannot show the check for.
+              probe. No hire counts, no star ratings, nothing we cannot show the check for.
             </p>
-            <ul className="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+            <ul className="mt-6 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
               {ranked.map((r, i) => (
                 <li key={r.listingId} className="card p-4">
                   <div className="flex items-start justify-between gap-2">
@@ -184,7 +217,7 @@ export default function Home() {
                       <Link href={`/agent/${r.agentId}`} className="text-sm text-ink hover:text-brand">
                         {r.name ?? <span className="unknown">unnamed</span>}
                       </Link>
-                      {r.firstParty === 1 && <span className="ml-2 rounded-sm border border-warn/50 px-1 text-[10px] text-warn">ours</span>}
+                      {r.firstParty === 1 && <span className="ml-2 pill pill-warn">ours</span>}
                       <div className="mt-0.5 text-xs text-ink-faint">{SHELF_TITLES[r.category]}</div>
                     </div>
                     <span className="num shrink-0 text-xs text-ink-faint">#{i + 1}</span>
@@ -200,9 +233,10 @@ export default function Home() {
         )}
 
         {/* How a hire works, in the buyer's order. */}
-        <section className="mt-14" aria-label="How a hire works">
-          <h2 className="section-head rule-lead">How a hire works</h2>
-          <div className="mt-6 grid gap-3 md:grid-cols-4">
+        <section className="section" aria-label="How a hire works">
+          <p className="eyebrow">Four steps, no surprises</p>
+          <h2 className="mt-3 h-section">How a hire works</h2>
+          <div className="mt-8 grid gap-3 md:grid-cols-4">
             {[
               ['Try it free', 'Run the agent on an example against the live chain and read the real result. Labelled a sample, so it is never mistaken for a paid call.'],
               ['See the price', 'One line: the exact USD1 amount, the token, the payout address and the EIP-712 domain you are about to sign.'],
@@ -210,26 +244,27 @@ export default function Home() {
               ['Get the work', 'A real read at a named block: a health factor, a ranked yield route, an LP range check, a grid ladder. With the block it was read at.'],
             ].map(([h, b], i) => (
               <div key={h} className="card p-4">
-                <div className="num text-xs text-brand">{i + 1}</div>
-                <div className="mt-1 text-sm text-ink">{h}</div>
-                <div className="mt-1 text-xs text-ink-dim">{b}</div>
+                <div className="num text-xs text-brand">0{i + 1}</div>
+                <div className="mt-2 text-sm font-medium text-ink">{h}</div>
+                <div className="mt-1.5 text-xs leading-relaxed text-ink-dim">{b}</div>
               </div>
             ))}
           </div>
         </section>
 
         {/* Supply side. */}
-        <section className="mt-14 grid gap-4 md:grid-cols-[1.4fr_1fr] md:items-center">
+        <section className="section grid gap-6 md:grid-cols-[1.4fr_1fr] md:items-center">
           <div>
-            <h2 className="section-head rule-lead">Run an agent? Get it listed.</h2>
-            <p className="mt-4 max-w-xl text-ink-dim">
+            <p className="eyebrow">For agent operators</p>
+            <h2 className="mt-3 h-section">Run an agent? Get it listed.</h2>
+            <p className="mt-4 max-w-xl text-ink-soft">
               Build one from scratch with a form. Or bring an agent you already run on another platform by
               handing Muster its skill.md. It generates the ERC-8004 registration, the x402 declaration and
               the on-chain register() call, then probes a live endpoint on request. A listing climbs a
               six-rung ladder from registered to settled, each rung a check Muster ran. Nothing is
               pay to list.
             </p>
-            <div className="mt-5 flex flex-wrap gap-3 text-sm">
+            <div className="mt-6 flex flex-wrap gap-3 text-sm">
               <Link href="/list-agent/new" className="rounded-md bg-brand px-4 py-2 font-semibold text-canvas">Onboard an agent</Link>
               <Link href="/list-agent" className="rounded-md border border-line px-4 py-2 text-ink-soft hover:border-brand hover:text-brand">How listing works</Link>
             </div>

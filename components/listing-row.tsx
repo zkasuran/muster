@@ -37,10 +37,10 @@ export function ListingRow({ l, compareWith }: { l: ListingCard; compareWith?: s
             {l.name ?? <span className="unknown">unnamed agent</span>}
           </Link>
           {l.firstParty === 1 && (
-            <span className="ml-2 rounded-sm border border-warn/50 px-1.5 text-xs text-warn">ours</span>
+            <span className="ml-2 pill pill-warn">ours</span>
           )}
           {l.dupeCount > 1 && (
-            <span className="ml-2 rounded-sm border border-line px-1.5 text-xs text-ink-dim">
+            <span className="ml-2 pill">
               +{l.dupeCount - 1} more from this operator
             </span>
           )}
