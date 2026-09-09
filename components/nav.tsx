@@ -45,6 +45,10 @@ export function Nav() {
           <Link href="/partners" className="text-ink-dim hover:text-brand">
             Partners
           </Link>
+          {/* [doc 11] the BNB Chain facts, read live and checked against the pinned values */}
+          <Link href="/stack" className="text-ink-dim hover:text-brand">
+            Stack
+          </Link>
         </nav>
         <form action="/search" method="get" className="ml-auto flex items-center gap-2">
           <label htmlFor="q" className="sr-only">
