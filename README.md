@@ -184,21 +184,21 @@ live contract by contract, shows both key identifiers and carries a revoke contr
 The session for the Venus Health Factor Watch is **registered on chain**, on BSC testnet (chain 97),
 in transaction
 [`0x52ae99613484277415fc72eb797d9745d7c119e2695ff56374612c5b8ee3b407`](https://testnet.altana.network/tx/0x52ae99613484277415fc72eb797d9745d7c119e2695ff56374612c5b8ee3b407).
-`getKeys(wallet)` now returns its keyId, `isValidKey` reads true, and the account's
-`canExecutePackedInfos` and `spendInfos` return the four-entry allowlist and the 100 USDT/day cap a
-judge can read with four free `eth_call`s. The scope: approve USDT to the Aave V3 pool, then only
-supply collateral or repay debt, nothing else. That is Altana requirements 1 to 5 met on chain, plus
-the prize gate's live transaction in the explorer. `tools/altana-grant.ts` is the command that landed
-it, and it grants the other three agents the same way once each wallet is funded. Testnet is used on
-purpose (the track says testnet counts); mainnet is the same one command against chain 56. The four
-wallet addresses, the same on chain 56 and chain 97:
+All four agents now hold a **registered Keystore session** on chain 97:
+`getKeys(wallet)` returns each keyId, `isValidKey` reads true, and each account's
+`canExecutePackedInfos` and `spendInfos` return its allowlist and daily cap a judge can read with
+free `eth_call`s. That is Altana requirements 1 to 5 met on chain, for all four wallets, plus the
+prize gate's live transactions in the explorer. `tools/altana-grant.ts` is the command that landed
+them. Testnet is used on purpose (the track says testnet counts); mainnet is the same one command
+against chain 56. The four wallet addresses, the same on chain 56 and chain 97, each with the grant
+that registered its session:
 
-| Agent | Shelf | Altana wallet |
-| --- | --- | --- |
-| Venus Health Factor Watch | health factor | `0x3B297E6B70A768fbAF45EEA9f2E323e0d7824cF7` |
-| BSC Yield Router | yield | `0xEa88E75eF92d0970517bb6134b18083565a0Fb41` |
-| PancakeSwap LP Range Check | rebalancing | `0x6736921084Ca68b97CB6c699877e77Cc5A3aFFBd` |
-| Grid Ladder Planner | grid trading | `0x27102b07D68311B9D37c07BCdc9FD998d81ba25F` |
+| Agent | Shelf | Altana wallet | Session grant (chain 97) |
+| --- | --- | --- | --- |
+| Venus Health Factor Watch | health factor | `0x3B297E6B70A768fbAF45EEA9f2E323e0d7824cF7` | [`0x52ae9961…`](https://testnet.altana.network/tx/0x52ae99613484277415fc72eb797d9745d7c119e2695ff56374612c5b8ee3b407) |
+| BSC Yield Router | yield | `0xEa88E75eF92d0970517bb6134b18083565a0Fb41` | [`0x78fc025a…`](https://testnet.altana.network/tx/0x78fc025af3802977b7d31216c7ca37419107ab868f01da792d1fce085e8da5d4) |
+| PancakeSwap LP Range Check | rebalancing | `0x6736921084Ca68b97CB6c699877e77Cc5A3aFFBd` | [`0xb7093356…`](https://testnet.altana.network/tx/0xb709335665823070ed1700fee4e847ff7241eb6436414ba376bcd0194b457526) |
+| Grid Ladder Planner | grid trading | `0x27102b07D68311B9D37c07BCdc9FD998d81ba25F` | [`0x052db360…`](https://testnet.altana.network/tx/0x052db36010d558aa64368279f3aad2742d4d8f30c84d20dcc55cb4b26e19825f) |
 
 The Altana SDK (`@altananetwork/sdk`, Apache-2.0) is installed only to run the grant handoff
 (`tools/altana-grant.ts`); no compiled file imports it, so it is not a shipped dependency. The GPL

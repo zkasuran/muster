@@ -45,21 +45,19 @@ export default async function AltanaPage() {
           it says unknown, never a zero.
         </p>
 
-        <section className="mt-6 rounded-lg border border-warn/40 bg-panel p-4">
-          <h2 className="text-sm uppercase tracking-wide text-warn">What is registered on chain, and what is a handoff</h2>
+        <section className="mt-6 rounded-lg border border-up/40 bg-panel p-4">
+          <h2 className="text-sm uppercase tracking-wide text-up">All four sessions are registered on chain</h2>
           <p className="mt-2 max-w-3xl text-sm text-ink-dim">
-            The Venus Health Factor Watch session is <span className="text-up">registered on chain</span>,
-            on {netName} (chain {CHAIN}), in transaction{' '}
-            <a className="num break-all text-brand" href={`${ALTANA_NET[CHAIN].explorer}/tx/0x52ae99613484277415fc72eb797d9745d7c119e2695ff56374612c5b8ee3b407`} target="_blank" rel="noreferrer noopener">0x52ae9961…5b8ee3b407</a>.
-            Its status below is read live from chain: <span className="num">getKeys</span> returns its
-            keyId, <span className="num">isValidKey</span> reads true, and the account&apos;s allowlist
-            and daily cap are the four calls and 100 USDT you can read with free{' '}
-            <span className="num">eth_call</span>s. The wallet addresses and both key identifiers for all
-            four agents are real, derived from keys we hold. The other three sessions are built and
-            funded-ready; each is one <span className="num">tools/altana-grant.ts</span> command away
-            once its wallet holds gas, and this page shows each the moment its grant lands, with no code
-            change. Mainnet (chain 56) is the same one command and is never run automatically. The
-            method is in the repository at <span className="num">docs/16-ALTANA.md</span>.
+            Each of the four agents holds a Keystore session <span className="text-up">registered on
+            chain</span>, on {netName} (chain {CHAIN}). Every status below is read live from chain, not
+            from a config file: <span className="num">getKeys</span> returns each keyId,{' '}
+            <span className="num">isValidKey</span> reads true, and each account&apos;s allowlist and
+            daily cap are the calls and the USDT limit you can read with free{' '}
+            <span className="num">eth_call</span>s. The wallet addresses and both key identifiers are
+            real, derived from keys we hold. <span className="num">tools/altana-grant.ts</span> is the
+            command that landed them; mainnet (chain 56) is the same one command and is never run
+            automatically. Where any value is not on chain it says unknown, never a zero. The method is
+            in the repository at <span className="num">docs/16-ALTANA.md</span>.
           </p>
         </section>
 
