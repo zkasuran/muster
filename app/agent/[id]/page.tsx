@@ -105,7 +105,7 @@ export default async function AgentPage({ params }: { params: Promise<{ id: stri
             <p className="mt-2 max-w-3xl text-sm text-ink-dim">
               The agent protocol sets the routes a listing must serve. We run that check against our own
               agents, so this is the bar we hold others to, held to ourselves. The verdicts are recomputed
-              on every page load from the documents this agent serves, and pinned in a test at
+              on every page load from the documents this agent serves, then pinned in a test at
               <span className="num"> lib/conformance.test.ts</span>.
             </p>
             <p className="mt-3 text-sm">

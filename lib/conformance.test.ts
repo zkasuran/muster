@@ -63,7 +63,7 @@ test('a manifest that disagrees with the card on price fails', () => {
   assert.equal(checkManifest(card, { ...man, skills }).ok, false)
 })
 
-test('a registration with no services fails, and one that classifies elsewhere fails', () => {
+test('a registration with no services fails and one that classifies elsewhere fails', () => {
   const reg = registrationDocument('health-factor', { origin: ORIGIN })
   assert.equal(checkRegistration('health-factor', reg).ok, true)
   assert.equal(checkRegistration('health-factor', { ...reg, services: [] }).ok, false)

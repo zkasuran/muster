@@ -2,7 +2,7 @@
  * The job resource logic, docs/04-AGENT-PROTOCOL.md sections 3 and 4, tested with no network. A temp
  * SQLite file is pointed at through MUSTER_DB before the import, the idiom lib/coverage.test.ts uses,
  * so lib/db.ts opens the temp store. The load-bearing assertions: the deliverable hash recomputes off
- * the stored result, a missing required input is caught before any settlement, and the terminal poll
+ * the stored result, a missing required input is caught before any settlement, then the terminal poll
  * carries the result, the rule and the hash in one body.
  */
 import { test } from 'node:test'

@@ -6,7 +6,7 @@
  *
  * Two rules this route follows that the synchronous route predates. Rule B9: a paid caller never gets
  * a 400 or a 422 about its own body. A create with a required input missing refuses before it settles,
- * so nothing is charged, and a create whose input turns out unusable after settlement is a coded
+ * so nothing is charged, while a create whose input turns out unusable after settlement is a coded
  * refusal, not a 400. Rule B5: a refusal is a success, answered 200 with a code from the closed set.
  */
 import { NextRequest, NextResponse } from 'next/server'
@@ -40,7 +40,7 @@ async function readParams(req: NextRequest, url: URL): Promise<URLSearchParams> 
       }
     }
   } catch {
-    // No body, or not JSON. The query alone is a valid request.
+    // The body may be absent or not JSON. The query alone is a valid request.
   }
   return params
 }
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ shelf: str
   }
 
   // A required input is missing. Refuse before settling, so a paid attempt is never charged for a
-  // request that could not run, and the answer is a 200 refusal rather than a 400. Rule B9.
+  // request that could not run. The answer is a 200 refusal rather than a 400. Rule B9.
   const missing = missingRequired(agent.inputs, params)
   if (missing.length > 0) {
     const rec = refusedJob({ shelf: slug, skillId, params, code: 'inputUnsupported', chargedBase: '0', paymentTx: null })

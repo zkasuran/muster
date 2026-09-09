@@ -1,7 +1,7 @@
 /**
  * The ERC-8004 registration document for one reference agent, the target a `tokenURI` would resolve
  * to. It carries the registration-v1 shape live BSC agents use, a `muster` service pointing at the
- * card, and services[].skills as OASF-style strings the classifier reads.
+ * card, plus services[].skills as OASF-style strings the classifier reads.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { findAgent, FIRST_PARTY } from '@/lib/agents'

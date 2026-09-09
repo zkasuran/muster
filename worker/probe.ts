@@ -362,10 +362,10 @@ interface PaymentInfo {
   bsc: boolean
   /** The channel the returned facts were read from. The header is authoritative and read first. */
   source: 'header' | 'body'
-  // [doc 04] Which channels a third party actually served, and whether they agree. Requirement 1 of
+  // [doc 04] Which channels a third party actually served, plus whether they agree. Requirement 1 of
   // the challenge section says the header and the body carry the same object, so a resource that
-  // serves only one, or two that disagree, is a fact worth recording rather than hiding behind the
-  // authoritative read.
+  // serves a single channel or two that disagree is a fact worth recording rather than hiding behind
+  // the authoritative read.
   servedHeader: boolean
   servedBody: boolean
   /** null when only one channel was served, else whether both name the same first offer. */
@@ -407,7 +407,7 @@ function parseOneChallenge(text: string): { version: number | null; accepts: num
  * Read an x402 challenge from both channels. The `PAYMENT-REQUIRED` header is authoritative and the
  * body is a v1 courtesy: the live BSC-accepting resource we measured returns v2 in the header and v1
  * in the body at the same time, so the header is tried first. Both channels are parsed independently
- * so the probe records which a third party served, and whether the two agree.
+ * so the probe records which a third party served, plus whether the two agree.
  */
 export function parsePaymentRequirements(headers: IncomingHttpHeaders, body: string): PaymentInfo | null {
   const raw = headers['payment-required']
@@ -589,7 +589,7 @@ function classifyStatus(
     const pay = parsePaymentRequirements(res.headers, res.body)
     if (pay) {
       // Which channels the third party served, requirement 1: the header and the body should carry
-      // the same object. Recorded so a resource that serves only one, or two that disagree, shows it.
+      // the same object. Recorded so a resource that serves a single channel or two that disagree shows it.
       const channels =
         pay.servedHeader && pay.servedBody
           ? `both channels ${pay.channelsAgree ? 'agree' : 'disagree'}`

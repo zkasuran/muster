@@ -1,6 +1,6 @@
 /**
  * The health check for one reference agent, docs/04-AGENT-PROTOCOL.md section 2. It answers inside
- * two seconds, is never cached, and its `checkedAt` is the moment it actually re-read its dependency,
+ * two seconds and is never cached. Its `checkedAt` is the moment it actually re-read its dependency,
  * so two probes a minute apart return different values. A frozen checkedAt is exactly what a service
  * that has quietly stopped looks like from outside, which is the failure this check is built to catch.
  */

@@ -1,12 +1,12 @@
 /**
  * The conformance report, docs/04-AGENT-PROTOCOL.md section 10. It answers one question for one
- * agent: does it serve every route a Muster listing must serve, and does each document actually
+ * agent: does it serve every route a Muster listing must serve and does each document actually
  * validate. It runs against our own four reference agents and the result is shown on their pages, so
  * a judge sees we clear our own bar rather than only asserting it.
  *
  * Every check runs in process against the generated document, with no network, so the agent page can
  * render it on a server component without a self-fetch that could hang. The route handlers are thin
- * wrappers over the same generators, and lib/conformance.test.ts plus the dev-server checks cover
+ * wrappers over the same generators. lib/conformance.test.ts plus the dev-server checks cover
  * that the wrappers serve what these functions validate.
  */
 import {

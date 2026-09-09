@@ -281,7 +281,7 @@ export const AGENT_REGISTRY_CAIP = `${CHAIN.caip2}:${REGISTRY.identity}`
 
 /**
  * The registration document a `tokenURI` would resolve to. It carries the ERC-8004 registration-v1
- * shape live BSC agents use, a `muster` service pointing at the card so the resolver finds it, and
+ * shape live BSC agents use, a `muster` service pointing at the card so the resolver finds it, plus
  * services[].skills as OASF-style strings the classifier reads.
  */
 export function registrationDocument(shelf: Shelf, opts: { origin: string }): Record<string, unknown> {

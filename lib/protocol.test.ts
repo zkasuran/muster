@@ -63,7 +63,7 @@ for (const shelf of SHELVES) {
     for (const k of ['chainId', 'registry', 'agentId', 'payTo']) assert.ok(k in agent, `agent missing ${k}`)
     assert.equal(agent.chainId, 56)
     assert.equal(agent.payTo, PAY_TO)
-    // agentId is a decimal string, never a number, and it is a reserved id.
+    // agentId is a decimal string, never a number; it is a reserved id.
     assert.equal(typeof agent.agentId, 'string')
     assert.match(agent.agentId as string, /^90000000[1-4]$/)
 

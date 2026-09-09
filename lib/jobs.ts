@@ -2,7 +2,7 @@
  * The job resource behind the poll shape, docs/04-AGENT-PROTOCOL.md sections 3 and 4.
  *
  * The synchronous paid path in app/api/agent/[shelf]/route.ts is unchanged. This adds the shape B
- * baseline the document makes required: a create returns a job id, and a free poll returns the job's
+ * baseline the document makes required: a create returns a job id and a free poll returns the job's
  * state and, once terminal, the deliverable with the hash that recomputes under the declared rule.
  * Our reference agents finish their work inside one request, so a created job is terminal at once,
  * but the poll surface is the one a long job needs and the one the conformance suite checks for.
