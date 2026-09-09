@@ -102,6 +102,12 @@ export default async function ShelfPage({ params, searchParams }: { params: Prom
           </div>
         </details>
 
+        {/* [doc 03] The full contract page: inputs, outputs, live counts and the published classifier rules. */}
+        <p className="mt-2 text-sm">
+          <Link href={`/shelf/${slug}/contract`} className="text-brand">Read the full contract</Link>
+          <span className="text-ink-faint">. It lists what a listing must accept and return, plus the exact rules that make a candidate.</span>
+        </p>
+
         <div className="mt-6 grid gap-6 md:grid-cols-[220px_1fr]">
           <aside className="space-y-5 text-sm">
             <form action={`/shelf/${shelf}`} method="get" className="space-y-1">

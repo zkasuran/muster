@@ -14,8 +14,8 @@ export const metadata = {
 /**
  * The Agent Diversity proof. docs/03-TAXONOMY.md section 5.1 fixes the layout and the unknown
  * states, docs/02-THESIS.md section 7 fixes the field list. It publishes, per category, the
- * candidate count, the answering count, the hireable count and the settled job count, and it
- * splits every one of those into third-party supply and our own reference supply, because a
+ * candidate count, the answering count, the hireable count and the settled job count. It splits
+ * every one of those into third-party supply and our own reference supply, because a
  * shelf that looks full of our own agents fails the criterion the moment the split is hidden.
  *
  * Every number is a read over the index at one block, so a zero here is a measurement rather than
@@ -102,7 +102,7 @@ export default function CoveragePage() {
           <p className="mt-2 max-w-3xl text-sm text-ink-dim">
             A category is a capability contract, not a tag. The classifier reads four fields off the
             registration record, the name, the description, the declared skills and the declared
-            service kinds, and matches them against the contract for each shelf. A match is a
+            service kinds, then matches them against the contract for each shelf. A match is a
             candidate. A row rises above the declared rung only when a probe agrees, which is the
             answering count above.
           </p>
@@ -119,7 +119,7 @@ export default function CoveragePage() {
             The classifier is a text match, so it is a candidate signal and not a verified capability.
             No hand-labelled precision sample has been drawn, so this page publishes no precision
             percentage rather than an invented one. The honest check is the answering count beside
-            every candidate count: a candidate the probe never confirms stays a candidate, and it is
+            every candidate count: a candidate the probe never confirms stays a candidate. It is
             counted as one here. Where the split shows a third-party count that a probe passed, that
             count is a measured answer and not a claim.
           </p>

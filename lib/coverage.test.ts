@@ -5,7 +5,7 @@
  * worker/probe.test.ts uses, so lib/db.ts opens the temp store rather than the real one.
  *
  * The load-bearing assertion is the hireable split: a payable row whose price is in no token we
- * quote is not hireable, and the third-party hireable count is a real zero. That is the finding
+ * quote is not hireable. The third-party hireable count is a real zero. That is the finding
  * the whole build is shaped around, so it is pinned by a test rather than trusted.
  */
 import { test } from 'node:test'
@@ -125,7 +125,7 @@ test('hireable excludes a payable row priced in a token we do not quote, so thir
   assert.deepEqual(y.hireable, { total: 1, ours: 1, third: 0 })
 })
 
-test('settled jobs counts only settled hire attempts, and carries the read block', () => {
+test('settled jobs counts only settled hire attempts and carries the read block', () => {
   assert.equal(y.settledJobs, 1)
   assert.equal(y.atBlock, 120000000)
 })
