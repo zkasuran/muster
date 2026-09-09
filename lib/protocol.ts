@@ -172,6 +172,11 @@ const SKILL_META: Record<Shelf, SkillMeta> = {
   },
 }
 
+/** The one skill id a shelf's reference agent declares. */
+export function skillIdFor(shelf: Shelf): string {
+  return SKILL_META[shelf].skillId
+}
+
 // ---- The Muster card ----
 
 function inputSchema(agent: FirstPartyAgent): Record<string, unknown> {

@@ -197,6 +197,36 @@ CREATE TABLE IF NOT EXISTS ledgerEntry (
   backfilledAt INTEGER
 );
 CREATE INDEX IF NOT EXISTS ledger_kind ON ledgerEntry (kind, seq);
+
+-- [doc 04] A protocol job for a first-party agent's poll shape. The synchronous paid path is
+-- unchanged; this is the additive shape B baseline docs/04-AGENT-PROTOCOL.md section 4 makes
+-- required (polling with a job id). state and terminalState use the lifecycle names in section 3.
+-- Only a completed job carries a result and a responseHash under the declared keccakCanonical
+-- rule. requestHash is the canonical hash of the request the payment authorised, so a settled
+-- payment can be tied to what it bought.
+CREATE TABLE IF NOT EXISTS agentJob (
+  jobId           TEXT PRIMARY KEY,
+  shelf           TEXT NOT NULL CHECK (shelf IN ('rebalancing','grid-trading','yield','health-factor')),
+  skillId         TEXT NOT NULL,
+  state           TEXT NOT NULL CHECK (state IN ('quoted','paid','working','completed','refused','failed','cancelled','expired','voided','lapsed')),
+  terminalState   TEXT CHECK (terminalState IS NULL OR terminalState IN ('completed','refused','failed','cancelled','expired','voided','lapsed')),
+  requestHash     TEXT NOT NULL,
+  result          TEXT,
+  responseHash    TEXT,
+  deliverableRule TEXT,
+  refusalCode     TEXT,
+  chargedBase     TEXT,
+  paymentTx       TEXT,
+  paymentState    TEXT,
+  inputsAsOfBlock INTEGER,
+  createdAt       INTEGER NOT NULL,
+  computedAt      INTEGER,
+  expiresAt       INTEGER NOT NULL,
+  -- Only completed carries a result and its hash. A refusal carries a code, never a result.
+  CHECK ((state = 'completed') = (responseHash IS NOT NULL)),
+  CHECK (refusalCode IS NULL OR state = 'refused')
+);
+CREATE INDEX IF NOT EXISTS agentjob_shelf ON agentJob (shelf, createdAt);
 `
 
 export function db(): DatabaseSync {
