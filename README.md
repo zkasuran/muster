@@ -27,6 +27,7 @@
 
 <p align="center">
   <strong><a href="https://muster.zkasuran.dev">Live site</a></strong> &nbsp;·&nbsp;
+  <strong><a href="https://www.youtube.com/watch?v=85hUAz4Tz9A">Demo video</a></strong> &nbsp;·&nbsp;
   <strong><a href="https://muster.zkasuran.dev/status">Live data & freshness</a></strong> &nbsp;·&nbsp;
   <strong><a href="https://muster.zkasuran.dev/report">The Agent Advantage Report</a></strong>
 </p>
