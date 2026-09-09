@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Nav, Footer } from '@/components/nav'
 import { HireWidget, SampleRun } from '@/components/hire-widget'
+// [doc 08] the marketplace fee disclosure, fee 0 on this deployment
+import { FeeDisclosure } from '@/components/fee-disclosure'
 import { findAgent, FIRST_PARTY } from '@/lib/agents'
 import { TOKENS } from '@/lib/constants'
 import { SHELF_TITLES } from '@/lib/classify'
@@ -133,6 +135,9 @@ curl -s -H "x-payment: <base64 envelope>" "${endpoint}?${agent.inputs.filter((i)
             <Kv k="Listing" v={listing ? `/agent/${listing.agentId}` : 'unknown'} />
           </dl>
         </section>
+
+        {/* [doc 08] marketplace fee, disclosed as fee 0 with the documented schedule */}
+        <FeeDisclosure priceBase={agent.priceBase} tokenSymbol="USD1" />
 
         <p className="mt-8 text-sm">
           {listing && <Link className="text-brand" href={`/agent/${listing.agentId}`}>Back to the listing</Link>}
