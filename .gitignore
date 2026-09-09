@@ -31,3 +31,9 @@ upload-*/
 .claude/
 lib/__gate/
 /CONTENT-*.html
+
+# [doc 16] Altana agent keys are secrets. .hq is already ignored above, this is explicit.
+/.hq/altana/
+# Next 16 agentRules writes these at the project root on dev/build. Generated, never committed.
+/AGENTS.md
+/CLAUDE.md

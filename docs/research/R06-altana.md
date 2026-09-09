@@ -14,6 +14,54 @@ Keystore holds only 123 registered keys across 56 live ones, so anything we ship
 mainnet is visible against a nearly empty board. The 50,000 XP prize is 16x the current
 top score of 3,000.
 
+## Re-verification and decision reversal, 2026-09-09
+
+Added 2026-09-09, about three hours before the build close. Two things changed since the
+2026-09-05 pass: we are reversing the drop, and we re-checked the live sources.
+
+**The drop is reversed on the testnet path.** `docs/decisions/17-track-priority-is-cash-and-reachable.md`
+dropped Altana on 2026-09-06 for three reasons: it pays XP not cash, the registration form had no
+Altana option, and a full mainnet build costs a day we did not have. We now build the track on the
+**testnet path**, because the read-and-panel work is cheap and it is the strongest verifiable
+evidence in the whole entry. No real money is spent in this build. The on-chain grant and the mainnet
+placement in `docs/decisions/13-partners-altana-on-mainnet.md` are a documented handoff, not something
+done here. The reversed design is in `docs/16-ALTANA.md`.
+
+**Liveness re-checked today, all returned 200:** `https://explorer.altana.network/`,
+`https://testnet.altana.network/`, `https://docs.altana.network/`,
+`https://docs.altana.network/sdk/erc8183`, `https://docs.altana.network/sdk/x402-server`,
+`https://skills.altana.network/index.json`.
+
+**Skills registry unchanged.** `index.json` is 21,204 bytes today, the exact size recorded on
+2026-09-05, and the ten ids are identical: pancakeswap-trading, four-meme, pancakeswap-liquidity,
+copy-trade, venus-lending, x402-payments, lista-staking, aave-v3-lending, dexscreener-token-radar,
+wallet-tracker. The skills table below still holds.
+
+**npm licences re-read today from the registry, the load-bearing fact for our source tree:**
+
+| Package | Version | License field, verbatim | May it enter our SAND tree |
+| --- | --- | --- | --- |
+| `@altananetwork/sdk` | 0.9.0 | `Apache-2.0` | yes. deps `ox ^0.14.0`, `viem ^2.21.0`, `porto 0.2.37` |
+| `@altananetwork/mcp` | 0.9.0 | `Apache-2.0` | yes, but it is a separate MCP process, not a library import |
+| `@altananetwork/x402-server` | 0.2.0 | `GPL-3.0-or-later` | no. copyleft would attach to the whole entry |
+| `@altananetwork/hypersigner-keystore-mcp` | 0.2.0 | `GPL-3.0-or-later` | no, same reason |
+
+So the sell-over-x402 bonus is written against the published x402 envelope with our own
+`lib/b402.ts` and `lib/x402-local.ts`, never by importing `@altananetwork/x402-server`.
+
+**Not re-run today:** the `cast` campaign from 2026-09-05 (addresses, fees, event topics, the live
+session reads). This environment has no `cast` and the archive reads need a paid RPC. Those rows are
+carried forward as still-believed and still dated 2026-09-05, not re-confirmed on 2026-09-09. The
+honesty floor holds: the product reads the chain live and renders `unknown` for anything it cannot
+read, so a stale address here cannot become a false on-screen claim.
+
+**Build choice for document 16.** The wallet derivation, the session-scope builder and the on-chain
+read panel are built against `viem`, which the repo already depends on. The Altana SDK is added to
+`package.json` for the grant handoff but is not imported by any compiled file, so the typecheck and
+the build never need it installed and the shared `node_modules` is left untouched. The key
+derivations below (`keyId`, `keyHash`, the session EOA) are pure and are unit-tested against the
+worked example in this document.
+
 ## Verified facts
 
 | Claim | Value | How verified |

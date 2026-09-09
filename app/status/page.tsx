@@ -134,8 +134,9 @@ export default async function StatusPage() {
             Until then Muster settles EIP-3009 authorizations itself, submitting the transfer from
             its own key and paying the gas, when that key holds gas. The facilitator row above says
             whether it can right now. No row is marked settled without a transaction that cleared. The
-            hash-chained money ledger ships and is at /ledger. Escrow and the Altana session panel
-            are out of scope for this entry and the reasons are in the decision records.
+            hash-chained money ledger ships and is at /ledger. The Altana session panel ships and is
+            at /altana, with the on-chain Keystore grant left as a documented testnet handoff. Escrow
+            is out of scope for this entry and the reasons are in the decision records.
           </p>
         </Section>
 

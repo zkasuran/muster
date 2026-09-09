@@ -3,7 +3,7 @@
 Find, compare and hire a live ERC-8004 agent on BNB Smart Chain, in one place.
 
 **Live:** https://muster.zkasuran.dev
-**Entered for:** BNB Chain Build the Era, main track, plus the TermiX and PancakeSwap bounties.
+**Entered for:** BNB Chain Build the Era, main track, plus the TermiX, PancakeSwap and Altana bounties.
 
 This README is the submission. The registration form has no field for a live URL, a demo video,
 a report or a wallet address, so the repository link carries everything a judge needs. It is
@@ -173,6 +173,26 @@ against 18.8 s over 21 hand calls, both landing on the same factor. The yield ta
 hired than by hand because the agent walks 55 markets against a hand-picked 5. The report
 says so rather than trimming the agent's scope to win. One arm was rerun after a transient RPC
 failure and the rerun is recorded in the JSON, not hidden.
+
+## Altana partner track
+
+Entered for Best Built with Altana. Each of the four reference agents holds its own self-custodial
+Altana wallet, with a session scoped to a call allowlist, a daily spend cap and an expiry. The scope
+lives on the wallet, so a stranger reads it off chain. The session panel at `/altana` reads that state
+live contract by contract, shows both key identifiers and carries a revoke control. The on-chain
+grant, which registers the session key in the Keystore, is built and left as a documented testnet
+handoff (`docs/16-ALTANA.md`), so no real money is spent here and nothing on the page claims a
+transaction that has not landed. The four wallet addresses, the same on chain 56 and chain 97:
+
+| Agent | Shelf | Altana wallet |
+| --- | --- | --- |
+| Venus Health Factor Watch | health factor | `0x3B297E6B70A768fbAF45EEA9f2E323e0d7824cF7` |
+| BSC Yield Router | yield | `0xEa88E75eF92d0970517bb6134b18083565a0Fb41` |
+| PancakeSwap LP Range Check | rebalancing | `0x6736921084Ca68b97CB6c699877e77Cc5A3aFFBd` |
+| Grid Ladder Planner | grid trading | `0x27102b07D68311B9D37c07BCdc9FD998d81ba25F` |
+
+The Altana SDK (`@altananetwork/sdk`, Apache-2.0) is a dependency for the grant handoff only. The GPL
+`@altananetwork/x402-server` is deliberately not in the tree, so no copyleft attaches to this entry.
 
 ## Repository layout
 

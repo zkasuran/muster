@@ -33,6 +33,10 @@ export function Nav() {
           <Link href="/ledger" className="text-ink-dim hover:text-brand">
             Ledger
           </Link>
+          {/* [doc 16] Altana partner track session panel */}
+          <Link href="/altana" className="text-ink-dim hover:text-brand">
+            Altana
+          </Link>
         </nav>
         <form action="/search" method="get" className="ml-auto flex items-center gap-2">
           <label htmlFor="q" className="sr-only">

@@ -1,0 +1,422 @@
+/**
+ * Altana partner track: self-custodial agent wallets and scoped sessions on BNB Smart Chain.
+ *
+ * This module is viem only. It does not import `@altananetwork/sdk`. The SDK is Apache-2.0 and it
+ * is listed in package.json for the grant handoff, but deriving a wallet address, building a scope
+ * or reading a grant off chain needs none of it. Pulling it in would add porto and ox to the
+ * shared node_modules. The one write we do not do here, registering the session in the Keystore, is
+ * a documented handoff in docs/16-ALTANA.md. `@altananetwork/x402-server` is GPL-3.0-or-later and
+ * never enters this tree.
+ *
+ * Every derivation here is checked against the worked example in docs/research/R06-altana.md, which
+ * pinned each value with a `cast` call on 2026-09-05. The tests in lib/altana.test.ts assert against
+ * that example, so a wrong derivation fails locally rather than as an opaque relay rejection.
+ *
+ * Private keys are secrets. `loadOrCreateAgent` writes them under .hq/altana at mode 600 and this
+ * module never returns or logs a private key. Only addresses and public key identifiers leave here.
+ */
+import { readFileSync, writeFileSync, existsSync, mkdirSync, chmodSync } from 'node:fs'
+import { dirname } from 'node:path'
+import {
+  keccak256,
+  encodeAbiParameters,
+  getAddress,
+  parseAbi,
+  createPublicClient,
+  http,
+  type Hex,
+  type Address,
+  type PublicClient,
+} from 'viem'
+import { bsc, bscTestnet } from 'viem/chains'
+import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
+import type { Shelf } from './types.ts'
+
+// ---- Verified Altana networks (docs/research/R06-altana.md, read 2026-09-05, KeyStore VERSION 1.0.1) ----
+export const ALTANA_NET = {
+  56: {
+    chainId: 56,
+    keystore: getAddress('0x6572427ED530BadcF7375Cf9A4709D8d2b0E7E0a'),
+    controller: getAddress('0x0834Ee2C9BdC3E3efF0a2dC34393D4B0e546A555'),
+    rpc: 'https://bsc-rpc.publicnode.com',
+    explorer: 'https://explorer.altana.network',
+  },
+  97: {
+    chainId: 97,
+    keystore: getAddress('0x6b8361C29d05D498b1a12B54A37310f94171E94A'),
+    controller: getAddress('0xb530D1971f5453F3359518343F05D0AedFfF7e12'),
+    rpc: 'https://bsc-testnet-rpc.publicnode.com',
+    explorer: 'https://testnet.altana.network',
+  },
+} as const
+export type AltanaChainId = keyof typeof ALTANA_NET
+/** This build lands its one real transaction on testnet. Mainnet is the handoff (docs/16-ALTANA.md). */
+export const DEFAULT_READ_CHAIN: AltanaChainId = 97
+
+// Protocol addresses the scopes name, each read on chain in R06.
+const USDT = getAddress('0x55d398326f99059fF775485246999027B3197955')
+const PCS_V2_ROUTER = getAddress('0x10ED43C718714eb63d5aA57B78B54704E256024E')
+const AAVE_POOL = getAddress('0x6807dc923806fE8Fd134338EABCA509979a7e0cB')
+
+// ---- Key derivations. Pure. Tested against R06's worked example. ----
+
+/** Keystore identifier: keccak256 of the SEC1 uncompressed public key (0x04 || X || Y, 65 bytes). */
+export function keyIdFromPublicKey(publicKey: Hex): Hex {
+  if (!/^0x04[0-9a-fA-F]{128}$/.test(publicKey)) throw new Error('publicKey must be 0x04 plus 64 bytes uncompressed')
+  return keccak256(publicKey)
+}
+
+/** The session key's EOA: the last 20 bytes of keccak256(X || Y), the standard address derivation. */
+export function eoaFromPublicKey(publicKey: Hex): Address {
+  if (!/^0x04[0-9a-fA-F]{128}$/.test(publicKey)) throw new Error('publicKey must be 0x04 plus 64 bytes uncompressed')
+  const xy = ('0x' + publicKey.slice(4)) as Hex
+  return getAddress(('0x' + keccak256(xy).slice(-40)) as Hex)
+}
+
+/**
+ * The account identifier, a different value from the keyId for the same key. For a secp256k1 session
+ * key (keyType 2) the account stores keccak256(abi.encode(uint8 2, keccak256(abi.encode(eoa)))).
+ * Every account-level permission read takes this, never the keyId.
+ */
+export function keyHashFromEoa(eoa: Address): Hex {
+  const inner = keccak256(encodeAbiParameters([{ type: 'address' }], [getAddress(eoa)]))
+  return keccak256(encodeAbiParameters([{ type: 'uint8' }, { type: 'bytes32' }], [2, inner]))
+}
+
+/** Parse one canExecutePackedInfos entry: target (20 bytes) || zero (8 bytes) || selector (4 bytes). */
+export function parseCanExecuteEntry(entry: Hex): { target: Address; selector: Hex } {
+  if (!/^0x[0-9a-fA-F]{64}$/.test(entry)) throw new Error('entry must be a 32-byte value')
+  const h = entry.slice(2)
+  return { target: getAddress(('0x' + h.slice(0, 40)) as Hex), selector: ('0x' + h.slice(56, 64)) as Hex }
+}
+
+// ---- Session scope builder. Pure. Two shapes across four shelves. Never an empty allowlist. ----
+
+export interface CallPermission {
+  signature: string
+  to: Address
+}
+export interface SpendPermission {
+  limit: bigint
+  period: 'day'
+  token: Address
+}
+export interface SessionScope {
+  shelf: Shelf
+  calls: CallPermission[]
+  spend: SpendPermission[]
+  /** Plain-English copy for the consent screen, generated by us, never from the skills registry. */
+  summary: string
+}
+
+const usdtPerDay = (n: number): SpendPermission => ({ limit: BigInt(n) * 10n ** 18n, period: 'day', token: USDT })
+
+/**
+ * The scope one agent's session may hold. Trading (rebalancing, grid) is approve plus the PancakeSwap
+ * V2 router. Lending (yield, health factor) is approve plus a couple of methods on the Aave V3 pool.
+ * Health factor is the tightest: add collateral or repay debt, nothing else. `calls` is always set,
+ * because omitting it grants every target inside the cap.
+ */
+export function sessionScope(shelf: Shelf): SessionScope {
+  switch (shelf) {
+    case 'rebalancing':
+    case 'grid-trading':
+      return {
+        shelf,
+        calls: [
+          { to: USDT, signature: 'approve(address,uint256)' },
+          { to: PCS_V2_ROUTER, signature: 'swapExactTokensForTokens(uint256,uint256,address[],address,uint256)' },
+        ],
+        spend: [usdtPerDay(50)],
+        summary:
+          'Approve USDT to the PancakeSwap V2 router and swap through it, at most 50 USDT a day. No other target, no plain transfer, no approval to anyone else.',
+      }
+    case 'yield':
+      return {
+        shelf,
+        calls: [
+          { to: USDT, signature: 'approve(address,uint256)' },
+          { to: AAVE_POOL, signature: 'supply(address,uint256,address,uint16)' },
+          { to: AAVE_POOL, signature: 'withdraw(address,uint256,address)' },
+        ],
+        spend: [usdtPerDay(50)],
+        summary:
+          'Approve USDT to the Aave V3 pool, supply and withdraw, at most 50 USDT a day. It cannot borrow and cannot touch any other contract.',
+      }
+    case 'health-factor':
+      return {
+        shelf,
+        calls: [
+          { to: USDT, signature: 'approve(address,uint256)' },
+          { to: AAVE_POOL, signature: 'supply(address,uint256,address,uint16)' },
+          { to: AAVE_POOL, signature: 'repay(address,uint256,uint256,address)' },
+        ],
+        spend: [usdtPerDay(100)],
+        summary:
+          'Approve USDT to the Aave V3 pool, then only add collateral or repay debt, at most 100 USDT a day. The tightest of the four scopes: it can defend a position and nothing else.',
+      }
+  }
+}
+
+/** The G2 gate stated as a check: a submitted scope must carry a real allowlist and a real cap. */
+export function assertScopeSafe(scope: SessionScope): void {
+  if (scope.calls.length === 0)
+    throw new Error(`scope for ${scope.shelf} has an empty allowlist, which would grant every target inside the cap`)
+  if (scope.spend.length === 0) throw new Error(`scope for ${scope.shelf} has no spend cap`)
+}
+
+/** For display and the handoff: bigints become decimal strings, matching the SDK's serialized shape. */
+export function serializeScope(scope: SessionScope): {
+  shelf: Shelf
+  calls: CallPermission[]
+  spend: { limit: string; period: 'day'; token: Address }[]
+  summary: string
+} {
+  return {
+    shelf: scope.shelf,
+    calls: scope.calls,
+    spend: scope.spend.map((s) => ({ limit: s.limit.toString(), period: s.period, token: s.token })),
+    summary: scope.summary,
+  }
+}
+
+// ---- The four agents' public artifacts. Private keys live under .hq/altana, never here. ----
+
+export interface AltanaAgent {
+  agentId: string
+  shelf: Shelf
+  name: string
+  /** The admin EOA, which is the Altana wallet address. Same address on chain 56 and 97. */
+  wallet: Address
+  sessionEoa: Address
+  /** keccak256(session public key). The Keystore identifier. */
+  keyId: Hex
+  /** The account identifier for permission reads. */
+  keyHash: Hex
+}
+
+/**
+ * Pinned from a one-time generation with loadOrCreateAgent. These are public: an address is safe to
+ * publish and a keyId is a public key hash. The private keys that back them stay under .hq/altana at
+ * mode 600 for the grant handoff. Regenerating the key files would change these, so they are pinned.
+ */
+export const ALTANA_AGENTS: readonly AltanaAgent[] = [
+  {
+    agentId: '900000001',
+    shelf: 'health-factor',
+    name: 'Venus Health Factor Watch',
+    wallet: '0x3B297E6B70A768fbAF45EEA9f2E323e0d7824cF7',
+    sessionEoa: '0x80e8c686A4D1F7D8c007049a05CD1c1817BDeEFf',
+    keyId: '0x1094b7d63f82a6e6d00579189d4530e8934f948d8a869e84516cc40099cc70ad',
+    keyHash: '0xcea9d48fd3bb80d63dd5981d3e1f64c1e7e125ed82873ee1396c5ea96fd96ee9',
+  },
+  {
+    agentId: '900000002',
+    shelf: 'yield',
+    name: 'BSC Yield Router',
+    wallet: '0xEa88E75eF92d0970517bb6134b18083565a0Fb41',
+    sessionEoa: '0xfa49C0198Fad2a95982E10a1D85a874E001Abb6E',
+    keyId: '0xcca466ba4eebebbb02cee33152032b2f8b17155771f3b64849e3a5a218f3b671',
+    keyHash: '0x84bc4a0eb60b8c8af94250c68da8fc38ee2e9df512e4e611e349773e43542252',
+  },
+  {
+    agentId: '900000003',
+    shelf: 'rebalancing',
+    name: 'PancakeSwap LP Range Check',
+    wallet: '0x6736921084Ca68b97CB6c699877e77Cc5A3aFFBd',
+    sessionEoa: '0x70202BB511B45E3f1c311C632D4D36a963b0860e',
+    keyId: '0x386ae0a2cda38742580a213b7f2135e24e75b8dae800955d08943d18821530df',
+    keyHash: '0x0eb5f35a85ac53096e7b71e0b4e7ba377e86c51faa5d031ec47e3509a68a7f88',
+  },
+  {
+    agentId: '900000004',
+    shelf: 'grid-trading',
+    name: 'Grid Ladder Planner',
+    wallet: '0x27102b07D68311B9D37c07BCdc9FD998d81ba25F',
+    sessionEoa: '0x8820778673b8df125f14b00B1AbC17d415a9B3a7',
+    keyId: '0x25608d1ff11e83ac140cad82812eaded2059fb09b507120cd9e67cf6edccc8ab',
+    keyHash: '0x492515a2585263d0a1012b696c2d861b9783f97186bc73ef465e486f4a43dbdd',
+  },
+]
+
+export function agentByShelf(shelf: Shelf): AltanaAgent | null {
+  return ALTANA_AGENTS.find((a) => a.shelf === shelf) ?? null
+}
+
+// ---- Key management. Handoff time only. Not called by any page or test. ----
+
+const KEY_DIR = process.env.MUSTER_ALTANA_KEY_DIR ?? '.hq/altana'
+
+function loadOrCreateKey(file: string): Hex {
+  const path = `${KEY_DIR}/${file}`
+  if (existsSync(path)) {
+    const line = readFileSync(path, 'utf8')
+      .split('\n')
+      .map((l) => l.trim())
+      .find((l) => /^0x[0-9a-fA-F]{64}$/.test(l))
+    if (line) return line as Hex
+  }
+  const key = generatePrivateKey()
+  mkdirSync(dirname(path), { recursive: true })
+  writeFileSync(path, key + '\n', { mode: 0o600 })
+  chmodSync(path, 0o600)
+  return key
+}
+
+/**
+ * Load or generate an agent's admin key and session key, then derive its public artifacts. Used once
+ * to pin ALTANA_AGENTS and again by the grant handoff, which needs the private keys to sign. The
+ * return value carries no private key.
+ */
+export function loadOrCreateAgent(agentId: string, shelf: Shelf, name: string): AltanaAgent {
+  const adminKey = loadOrCreateKey(`agent-${agentId}-admin.key`)
+  const sessionKey = loadOrCreateKey(`agent-${agentId}-session.key`)
+  const wallet = privateKeyToAccount(adminKey).address
+  const publicKey = privateKeyToAccount(sessionKey).publicKey
+  const sessionEoa = eoaFromPublicKey(publicKey)
+  return {
+    agentId,
+    shelf,
+    name,
+    wallet,
+    sessionEoa,
+    keyId: keyIdFromPublicKey(publicKey),
+    keyHash: keyHashFromEoa(sessionEoa),
+  }
+}
+
+// ---- Chain reads. viem. The panel calls these live, per docs/16-ALTANA.md requirement 2 and 5. ----
+
+const KEYSTORE_ABI = parseAbi([
+  'function isValidKey(address user, bytes32 keyId) view returns (bool)',
+  'function getKeys(address user) view returns (bytes32[])',
+  'function getExpiry(address user, bytes32 keyId) view returns (uint40)',
+  'function isRootKey(address user, bytes32 keyId) view returns (bool)',
+])
+
+// spendInfos is a static 7-word struct per entry. Positions 0 (token), 1 (period), 2 (limit) and 6
+// (period start) are confirmed in R06; 3 to 5 read as zero on the sampled wallet, so they are read
+// positionally and not named. A decode mismatch is caught and shows the cap as unknown.
+const ACCOUNT_ABI = parseAbi([
+  'function canExecutePackedInfos(bytes32 keyHash) view returns (bytes32[])',
+  'function spendInfos(bytes32 keyHash) view returns ((address,uint8,uint256,uint256,uint256,uint256,uint256)[])',
+  'function canExecute(bytes32 keyHash, address target, bytes data) view returns (bool)',
+])
+
+const clients = new Map<number, PublicClient>()
+function altanaClient(chainId: AltanaChainId): PublicClient {
+  const existing = clients.get(chainId)
+  if (existing) return existing
+  const c = createPublicClient({
+    chain: chainId === 56 ? bsc : bscTestnet,
+    transport: http(ALTANA_NET[chainId].rpc, { timeout: 10_000, retryCount: 0 }),
+  }) as PublicClient
+  clients.set(chainId, c)
+  return c
+}
+
+export interface LiveSpend {
+  token: string
+  period: number
+  limit: string
+  periodStart: number
+}
+export interface LiveSession {
+  chainId: number
+  keystore: Address
+  /** The session keyId is in getKeys(wallet). */
+  registered: boolean
+  /** isValidKey: registered, unrevoked and unexpired. null when the read failed. */
+  valid: boolean | null
+  isRoot: boolean | null
+  /** getExpiry in unix seconds. null when unknown or when a 0 would misread as "expired now". */
+  expiry: number | null
+  /** From canExecutePackedInfos on the wallet account. null until the account has delegate code. */
+  allowlist: { target: Address; selector: Hex }[] | null
+  /** From spendInfos on the wallet account. null until readable. */
+  spend: LiveSpend[] | null
+  error: string | null
+  readAt: number
+}
+
+/**
+ * Read the live grant for one session key off chain. Nothing here is cached and nothing is stored:
+ * a judge can run the identical calls and get the identical answer. An unregistered wallet has no
+ * delegate code, so the account reads revert and the allowlist and cap read as unknown rather than
+ * as an empty or zero value.
+ */
+export async function readLiveSession(
+  chainId: AltanaChainId,
+  wallet: Address,
+  keyId: Hex,
+  keyHash: Hex,
+): Promise<LiveSession> {
+  const net = ALTANA_NET[chainId]
+  const c = altanaClient(chainId)
+  const out: LiveSession = {
+    chainId,
+    keystore: net.keystore,
+    registered: false,
+    valid: null,
+    isRoot: null,
+    expiry: null,
+    allowlist: null,
+    spend: null,
+    error: null,
+    readAt: Date.now(),
+  }
+  try {
+    const keys = (await c.readContract({
+      address: net.keystore,
+      abi: KEYSTORE_ABI,
+      functionName: 'getKeys',
+      args: [wallet],
+    })) as readonly Hex[]
+    out.registered = keys.map((k) => k.toLowerCase()).includes(keyId.toLowerCase())
+    const [valid, expiry, root] = await Promise.allSettled([
+      c.readContract({ address: net.keystore, abi: KEYSTORE_ABI, functionName: 'isValidKey', args: [wallet, keyId] }),
+      c.readContract({ address: net.keystore, abi: KEYSTORE_ABI, functionName: 'getExpiry', args: [wallet, keyId] }),
+      c.readContract({ address: net.keystore, abi: KEYSTORE_ABI, functionName: 'isRootKey', args: [wallet, keyId] }),
+    ])
+    out.valid = valid.status === 'fulfilled' ? Boolean(valid.value) : null
+    out.isRoot = root.status === 'fulfilled' ? Boolean(root.value) : null
+    if (expiry.status === 'fulfilled') {
+      const e = Number(expiry.value)
+      // A 0 expiry on an unregistered key is "no key", not "expired at the epoch". Show unknown.
+      out.expiry = e === 0 && !out.registered ? null : e
+    }
+  } catch (e) {
+    out.error = (e as Error).message.split('\n')[0]?.slice(0, 140) ?? 'keystore read failed'
+    return out
+  }
+  try {
+    const raw = (await c.readContract({
+      address: wallet,
+      abi: ACCOUNT_ABI,
+      functionName: 'canExecutePackedInfos',
+      args: [keyHash],
+    })) as readonly Hex[]
+    out.allowlist = raw.map(parseCanExecuteEntry)
+  } catch {
+    out.allowlist = null
+  }
+  try {
+    const raw = (await c.readContract({
+      address: wallet,
+      abi: ACCOUNT_ABI,
+      functionName: 'spendInfos',
+      args: [keyHash],
+    })) as unknown as ReadonlyArray<readonly unknown[]>
+    out.spend = raw.map((s) => ({ token: String(s[0]), period: Number(s[1]), limit: String(s[2]), periodStart: Number(s[6]) }))
+  } catch {
+    out.spend = null
+  }
+  return out
+}
+
+export function accountExplorerUrl(chainId: AltanaChainId, wallet: Address): string {
+  return `${ALTANA_NET[chainId].explorer}/account/${wallet}`
+}
+export function keyExplorerUrl(chainId: AltanaChainId, keyId: Hex): string {
+  return `${ALTANA_NET[chainId].explorer}/key/${keyId}`
+}
