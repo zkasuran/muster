@@ -9,6 +9,8 @@ import { parseAgentCard } from '@/lib/agentcard'
 import { SHELF_TITLES } from '@/lib/classify'
 import { REGISTRY, TOKENS } from '@/lib/constants'
 import { FIRST_PARTY } from '@/lib/agents'
+import { conformanceReport } from '@/lib/conformance'
+import { agentByShelf } from '@/lib/altana'
 import { EVIDENCE_ORDER, type EvidenceRung } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
@@ -39,6 +41,12 @@ export default async function AgentPage({ params }: { params: Promise<{ id: stri
   const feedback = ours ? null : feedbackFor(a.agentId)
   const reserved = Number(a.agentId) >= RESERVED_BASE
   const spec = ours ? FIRST_PARTY.find((f) => f.slug === a.category) ?? null : null
+  // [doc 04] Run our own conformance bar against this agent, in process, so the page shows we pass
+  // the routes docs/04-AGENT-PROTOCOL.md requires of any listing. payTo is resolved the same way the
+  // card route resolves it, so the checked 402 matches the one the agent would serve.
+  const conformancePayTo =
+    process.env.MUSTER_PAYTO ?? agentByShelf(a.category)?.wallet ?? '0x0000000000000000000000000000000000000000'
+  const conformance = ours ? conformanceReport(a.category, { origin: PUBLIC_ORIGIN, payTo: conformancePayTo }) : null
   const sibling = ours ? null : firstPartyOnShelf(a.category)
   const hireable = a.evidenceTier === 'payable' || a.evidenceTier === 'settled'
   const latest = probes[0] ?? null
@@ -89,6 +97,68 @@ export default async function AgentPage({ params }: { params: Promise<{ id: stri
               registry id. The reasoning and the rejected alternatives are in the repository at
               <span className="num"> docs/decisions/18-the-intersection-is-one-agent.md</span>.
             </p>
+          </section>
+        )}
+
+        {ours && conformance && (
+          <section className="mt-6 rounded-lg border border-line bg-panel p-4">
+            <h2 className="text-sm uppercase tracking-wide text-ink-faint">Our own conformance bar</h2>
+            <p className="mt-2 max-w-3xl text-sm text-ink-dim">
+              The agent protocol sets the routes a listing must serve. We run that check against our own
+              agents, so this is the bar we hold others to, held to ourselves. The verdicts are recomputed
+              on every page load from the documents this agent serves, then pinned in a test at
+              <span className="num"> lib/conformance.test.ts</span>.
+            </p>
+            <p className="mt-3 text-sm">
+              <span className={conformance.passed === conformance.total ? 'text-up' : 'text-down'}>
+                Passes {conformance.passed} of {conformance.total} required routes
+              </span>
+            </p>
+            <ul className="mt-3 space-y-1 text-sm">
+              {conformance.results.map((r) => (
+                <li
+                  key={r.route.path}
+                  className="flex flex-wrap items-baseline gap-x-3 border-b border-line-soft pb-1 last:border-0"
+                >
+                  <span className={r.present ? 'text-up' : 'text-down'}>{r.present ? 'present' : 'absent'}</span>
+                  <span className="num text-ink">
+                    {r.route.method} {r.route.path}
+                  </span>
+                  {r.route.priced && <span className="text-xs text-brand">priced</span>}
+                  <span className="text-ink-dim">{r.reason}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-3 text-xs">
+              <div className="text-ink-faint">The documents it serves, open them</div>
+              <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                {[
+                  ['card', '/card'],
+                  ['registration', '/registration'],
+                  ['manifest', '/manifest'],
+                  ['health', '/health'],
+                  ['schema', '/schema'],
+                ].map(([label, p]) => (
+                  <a
+                    key={p}
+                    className="num text-brand"
+                    href={`${PUBLIC_ORIGIN}/api/agent/${a.category}${p}`}
+                    rel="noreferrer noopener"
+                    target="_blank"
+                  >
+                    {label}
+                  </a>
+                ))}
+                <a
+                  className="num text-brand"
+                  href={`${PUBLIC_ORIGIN}/.well-known/agent-registration.json`}
+                  rel="noreferrer noopener"
+                  target="_blank"
+                >
+                  .well-known
+                </a>
+              </div>
+            </div>
           </section>
         )}
 

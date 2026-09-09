@@ -360,55 +360,78 @@ interface PaymentInfo {
   accepts: number
   /** Whether one of the offers settles on BSC, which is the only leg this marketplace can quote. */
   bsc: boolean
+  /** The channel the returned facts were read from. The header is authoritative and read first. */
   source: 'header' | 'body'
+  // [doc 04] Which channels a third party actually served, plus whether they agree. Requirement 1 of
+  // the challenge section says the header and the body carry the same object, so a resource that
+  // serves a single channel or two that disagree is a fact worth recording rather than hiding behind
+  // the authoritative read.
+  servedHeader: boolean
+  servedBody: boolean
+  /** null when only one channel was served, else whether both name the same first offer. */
+  channelsAgree: boolean | null
+}
+
+// [doc 04] Parse one x402 challenge text into the facts a probe records. `amount` is the v2 key and
+// `maxAmountRequired` the v1 key. An offer needs a payee plus one of the two to be satisfiable.
+function parseOneChallenge(text: string): { version: number | null; accepts: number; bsc: boolean; key: string } | null {
+  let obj: Record<string, unknown>
+  try {
+    obj = JSON.parse(text) as Record<string, unknown>
+  } catch {
+    return null
+  }
+  const accepts = Array.isArray(obj['accepts']) ? (obj['accepts'] as Record<string, unknown>[]) : []
+  const usable = accepts.filter(
+    (a) =>
+      a !== null &&
+      typeof a === 'object' &&
+      typeof a['payTo'] === 'string' &&
+      (typeof a['amount'] === 'string' || typeof a['maxAmountRequired'] === 'string'),
+  )
+  if (usable.length === 0) return null
+  const version = typeof obj['x402Version'] === 'number' ? obj['x402Version'] : null
+  // v1 names the network (`base`, `bsc`) and v2 uses CAIP-2, so both spellings are read.
+  const bsc = usable.some((a) => {
+    const network = typeof a['network'] === 'string' ? a['network'].toLowerCase() : ''
+    return network === 'eip155:56' || network === 'bsc' || network === 'bnb'
+  })
+  const first = usable[0]!
+  const amount = String(first['amount'] ?? first['maxAmountRequired'] ?? '')
+  const asset = String(first['asset'] ?? first['payTo'] ?? '').toLowerCase()
+  const network = String(first['network'] ?? '').toLowerCase()
+  return { version, accepts: usable.length, bsc, key: `${amount}|${asset}|${network}` }
 }
 
 /**
- * Read an x402 challenge. The `PAYMENT-REQUIRED` header is authoritative and the body is a v1
- * courtesy: the live BSC-accepting resource we measured returns v2 in the header and v1 in the
- * body at the same time, so the header is tried first. `amount` is the v2 key and
- * `maxAmountRequired` the v1 key. An offer needs a payee plus one of the two to be satisfiable.
+ * Read an x402 challenge from both channels. The `PAYMENT-REQUIRED` header is authoritative and the
+ * body is a v1 courtesy: the live BSC-accepting resource we measured returns v2 in the header and v1
+ * in the body at the same time, so the header is tried first. Both channels are parsed independently
+ * so the probe records which a third party served, plus whether the two agree.
  */
-function parsePaymentRequirements(headers: IncomingHttpHeaders, body: string): PaymentInfo | null {
+export function parsePaymentRequirements(headers: IncomingHttpHeaders, body: string): PaymentInfo | null {
   const raw = headers['payment-required']
-  const candidates: { text: string; source: 'header' | 'body' }[] = []
+  let headerText: string | null = null
   if (typeof raw === 'string' && raw !== '') {
     try {
-      candidates.push({ text: Buffer.from(raw, 'base64').toString('utf8'), source: 'header' })
+      headerText = Buffer.from(raw, 'base64').toString('utf8')
     } catch {
-      // A header that is not base64 falls through to the body.
+      headerText = null
     }
   }
-  if (body !== '') candidates.push({ text: body, source: 'body' })
-  for (const c of candidates) {
-    let obj: Record<string, unknown>
-    try {
-      obj = JSON.parse(c.text) as Record<string, unknown>
-    } catch {
-      continue
-    }
-    const accepts = Array.isArray(obj['accepts']) ? (obj['accepts'] as Record<string, unknown>[]) : []
-    const usable = accepts.filter(
-      (a) =>
-        a !== null &&
-        typeof a === 'object' &&
-        typeof a['payTo'] === 'string' &&
-        (typeof a['amount'] === 'string' || typeof a['maxAmountRequired'] === 'string'),
-    )
-    if (usable.length === 0) continue
-    const version = typeof obj['x402Version'] === 'number' ? obj['x402Version'] : null
-    return {
-      version,
-      accepts: usable.length,
-      // v1 names the network (`base`, `bsc`) and v2 uses CAIP-2, so both spellings are read.
-      bsc: usable.some((a) => {
-        const network = typeof a['network'] === 'string' ? a['network'].toLowerCase() : ''
-        return network === 'eip155:56' || network === 'bsc' || network === 'bnb'
-      }),
-      source: c.source,
-    }
+  const headerCh = headerText ? parseOneChallenge(headerText) : null
+  const bodyCh = body !== '' ? parseOneChallenge(body) : null
+  if (!headerCh && !bodyCh) return null
+  const authoritative = headerCh ?? bodyCh!
+  return {
+    version: authoritative.version,
+    accepts: authoritative.accepts,
+    bsc: authoritative.bsc,
+    source: headerCh ? 'header' : 'body',
+    servedHeader: headerCh !== null,
+    servedBody: bodyCh !== null,
+    channelsAgree: headerCh && bodyCh ? headerCh.key === bodyCh.key : null,
   }
-  return null
 }
 
 const TLS_CODES = new Set([
@@ -565,11 +588,19 @@ function classifyStatus(
   if (status === 402) {
     const pay = parsePaymentRequirements(res.headers, res.body)
     if (pay) {
+      // Which channels the third party served, requirement 1: the header and the body should carry
+      // the same object. Recorded so a resource that serves a single channel or two that disagree shows it.
+      const channels =
+        pay.servedHeader && pay.servedBody
+          ? `both channels ${pay.channelsAgree ? 'agree' : 'disagree'}`
+          : pay.servedHeader
+            ? 'header only'
+            : 'body only'
       return {
         verdict: 'pass',
         failureClass: null,
         sawPaymentRequired: true,
-        note: `402 x402Version=${pay.version ?? 'unstated'} accepts=${pay.accepts} bsc=${pay.bsc ? 'yes' : 'no'} read from the ${pay.source}${trail}`,
+        note: `402 x402Version=${pay.version ?? 'unstated'} accepts=${pay.accepts} bsc=${pay.bsc ? 'yes' : 'no'} read from the ${pay.source}, ${channels}${trail}`,
       }
     }
     // The service answered the way a paid resource should. It is still not payable, so the rung
