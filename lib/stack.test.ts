@@ -31,7 +31,7 @@ test('the EIP-1967 implementation slot is keccak256("eip1967.proxy.implementatio
   assert.match(EIP1967_IMPL_SLOT, /^0x[0-9a-f]{64}$/)
 })
 
-test('the identity counter slot exists because totalSupply reverts, and is ERC-7201 shaped', () => {
+test('the identity counter slot exists because totalSupply reverts and is ERC-7201 shaped', () => {
   // The registry is not ERC721Enumerable, so totalSupply() reverts and the population is read from
   // this storage slot instead. Its presence is the workaround. Its low byte is zero, which is the
   // ERC-7201 namespaced-slot structure the registry uses.

@@ -2,8 +2,8 @@
  * [doc 11] The chain facts the /stack page reads live, so the numbers a judge sees there were
  * verified this render rather than copied from a constant. Three reads, each pinned to one block:
  * which public endpoints answer chain 56 and serve getLogs at the sweep width (the boot capability
- * assertion), the decimals() and DOMAIN_SEPARATOR() every configured payment token returns, and
- * the EIP-1967 implementation behind each proxy. Nothing here is stored, and a read that fails
+ * assertion), the decimals() and DOMAIN_SEPARATOR() every configured payment token returns and
+ * the EIP-1967 implementation behind each proxy. Nothing here is stored. A read that fails
  * renders as unknown rather than as a zero or a guess.
  */
 import { parseAbi, getAddress, type Hex } from 'viem'

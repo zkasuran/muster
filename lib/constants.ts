@@ -143,10 +143,10 @@ export const CHAIN_FACTS_PINNED_AT = '2026-09-09'
 
 /**
  * The DOMAIN_SEPARATOR() each configured payment token returns on chain. U's value is the one
- * lib/b402.ts derives its U domain to match, and USD1's was read straight from the token, which
+ * lib/b402.ts derives its U domain to match. USD1's was read straight from the token, which
  * implements ERC-5267. USDT and USDC expose no DOMAIN_SEPARATOR because they settle over Permit2,
  * so the call reverts and the pin is null. A live read that differs from a non-null pin means the
- * token's EIP-712 domain moved, and every prepared signature under it would recover to the wrong
+ * token's EIP-712 domain moved. Every prepared signature under it would recover to the wrong
  * address.
  */
 export const PINNED_DOMAIN_SEPARATOR: Record<keyof typeof TOKENS, string | null> = {
@@ -185,7 +185,7 @@ export const PINNED_IMPL: Record<string, string | null> = {
 /**
  * [doc 11] PancakeSwap v3 enables these fee tiers on BSC, in pips (hundredths of a basis point,
  * so 100 is 0.01% and 10000 is 1%). There is no 3000 (0.3%) tier here, which a Uniswap-shaped
- * assumption would add. lib/pancake.ts reads a pool's fee() and labels it, and these are the tiers
+ * assumption would add. lib/pancake.ts reads a pool's fee() and labels it. These are the tiers
  * that label can legitimately carry.
  */
 export const PANCAKE_V3_FEE_TIERS = [100, 500, 2500, 10000] as const

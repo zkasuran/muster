@@ -12,7 +12,7 @@ export const metadata = {
 /**
  * [doc 11] The page that shows the chain facts were verified, not assumed. It reads three things
  * live on every render: which public RPC endpoints answer chain 56 and serve getLogs at the sweep
- * width, the decimals() and DOMAIN_SEPARATOR() of every configured payment token, and the EIP-1967
+ * width, the decimals() and DOMAIN_SEPARATOR() of every configured payment token and the EIP-1967
  * implementation behind each proxy. A read that fails says unknown. A value that differs from the
  * pinned one is flagged, because that is how an upgrade or a token change becomes visible.
  */
@@ -31,7 +31,7 @@ export default async function StackPage() {
         <p className="mt-2 max-w-2xl text-ink-dim">
           Muster reads chain {CHAIN.id} directly. This page proves the reads work rather than
           asserting they do. Every row is read live on this render and checked against the value
-          pinned at build time. A read that fails says unknown, and a value that has moved off its
+          pinned at build time. A read that fails says unknown. A value that has moved off its
           pin is flagged, because a silent token or registry change is the failure this page exists
           to catch.
         </p>
