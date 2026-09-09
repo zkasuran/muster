@@ -179,10 +179,19 @@ failure and the rerun is recorded in the JSON, not hidden.
 Entered for Best Built with Altana. Each of the four reference agents holds its own self-custodial
 Altana wallet, with a session scoped to a call allowlist, a daily spend cap and an expiry. The scope
 lives on the wallet, so a stranger reads it off chain. The session panel at `/altana` reads that state
-live contract by contract, shows both key identifiers and carries a revoke control. The on-chain
-grant, which registers the session key in the Keystore, is built and left as a documented testnet
-handoff (`docs/16-ALTANA.md`), so no real money is spent here and nothing on the page claims a
-transaction that has not landed. The four wallet addresses, the same on chain 56 and chain 97:
+live contract by contract, shows both key identifiers and carries a revoke control.
+
+The session for the Venus Health Factor Watch is **registered on chain**, on BSC testnet (chain 97),
+in transaction
+[`0x52ae99613484277415fc72eb797d9745d7c119e2695ff56374612c5b8ee3b407`](https://testnet.altana.network/tx/0x52ae99613484277415fc72eb797d9745d7c119e2695ff56374612c5b8ee3b407).
+`getKeys(wallet)` now returns its keyId, `isValidKey` reads true, and the account's
+`canExecutePackedInfos` and `spendInfos` return the four-entry allowlist and the 100 USDT/day cap a
+judge can read with four free `eth_call`s. The scope: approve USDT to the Aave V3 pool, then only
+supply collateral or repay debt, nothing else. That is Altana requirements 1 to 5 met on chain, plus
+the prize gate's live transaction in the explorer. `tools/altana-grant.ts` is the command that landed
+it, and it grants the other three agents the same way once each wallet is funded. Testnet is used on
+purpose (the track says testnet counts); mainnet is the same one command against chain 56. The four
+wallet addresses, the same on chain 56 and chain 97:
 
 | Agent | Shelf | Altana wallet |
 | --- | --- | --- |
@@ -191,7 +200,8 @@ transaction that has not landed. The four wallet addresses, the same on chain 56
 | PancakeSwap LP Range Check | rebalancing | `0x6736921084Ca68b97CB6c699877e77Cc5A3aFFBd` |
 | Grid Ladder Planner | grid trading | `0x27102b07D68311B9D37c07BCdc9FD998d81ba25F` |
 
-The Altana SDK (`@altananetwork/sdk`, Apache-2.0) is a dependency for the grant handoff only. The GPL
+The Altana SDK (`@altananetwork/sdk`, Apache-2.0) is installed only to run the grant handoff
+(`tools/altana-grant.ts`); no compiled file imports it, so it is not a shipped dependency. The GPL
 `@altananetwork/x402-server` is deliberately not in the tree, so no copyleft attaches to this entry.
 
 ## Repository layout

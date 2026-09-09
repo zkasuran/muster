@@ -46,17 +46,20 @@ export default async function AltanaPage() {
         </p>
 
         <section className="mt-6 rounded-lg border border-warn/40 bg-panel p-4">
-          <h2 className="text-sm uppercase tracking-wide text-warn">What is real here and what is a handoff</h2>
+          <h2 className="text-sm uppercase tracking-wide text-warn">What is registered on chain, and what is a handoff</h2>
           <p className="mt-2 max-w-3xl text-sm text-ink-dim">
-            The wallet addresses and the two key identifiers below are real, derived from keys we
-            hold. The session scope is built and shown. The on-chain grant, which registers the
-            session key in the Keystore, is the one step this build does not run, because it needs
-            testnet BNB from a faucet and a signing key that stays off this web server. So each session
-            reads as built, not yet registered onchain. It is planned for {netName} first, chain{' '}
-            {CHAIN}. Mainnet is a later handoff with real BNB and is never done automatically. The
-            method and the exact grant command are in the repository at{' '}
-            <span className="num">docs/16-ALTANA.md</span>. This page reads the chain, so the moment a
-            session is registered it shows here with no code change.
+            The Venus Health Factor Watch session is <span className="text-up">registered on chain</span>,
+            on {netName} (chain {CHAIN}), in transaction{' '}
+            <a className="num break-all text-brand" href={`${ALTANA_NET[CHAIN].explorer}/tx/0x52ae99613484277415fc72eb797d9745d7c119e2695ff56374612c5b8ee3b407`} target="_blank" rel="noreferrer noopener">0x52ae9961…5b8ee3b407</a>.
+            Its status below is read live from chain: <span className="num">getKeys</span> returns its
+            keyId, <span className="num">isValidKey</span> reads true, and the account&apos;s allowlist
+            and daily cap are the four calls and 100 USDT you can read with free{' '}
+            <span className="num">eth_call</span>s. The wallet addresses and both key identifiers for all
+            four agents are real, derived from keys we hold. The other three sessions are built and
+            funded-ready; each is one <span className="num">tools/altana-grant.ts</span> command away
+            once its wallet holds gas, and this page shows each the moment its grant lands, with no code
+            change. Mainnet (chain 56) is the same one command and is never run automatically. The
+            method is in the repository at <span className="num">docs/16-ALTANA.md</span>.
           </p>
         </section>
 
