@@ -907,6 +907,13 @@ make is inside the grant, which is the point of choosing source-available over c
 | Any PR into `pancakeswap/*`, `bnb-chain/*`, `ChaosChain/trustless-agents-erc-ri`, `x402-foundation/x402` or an Altana repo | **contribution** | whatever that repo uses | a PR takes the target repo's licence. Not a choice |
 | The research documents behind this build | **internal** | not published | they carry rival tracking plus defence notes and are not part of the submission |
 
+**Correction, 2026-09-09.** The row above records the intended posture, not the shipped state.
+`docs/research/` is tracked in git: 58 files under it are in the repository, `R14-rivals.md` among
+them, so on the public flip these documents ship rather than stay withheld. Only `docs/research/raw/`
+is gitignored. Read the row as the design intent and treat the research tree as part of the published
+bytes until a separate decision changes what is tracked. This note records the gap rather than
+resolving it, because untracking a file is a decision taken where it is made, not here.
+
 **Where MIT is the right answer and where it is not.** MIT is correct in exactly one place here: a PR into
 a repository that uses it, which is not a choice we make. Two of the repositories we may contribute to sit
 there, `ChaosChain/trustless-agents-erc-ri` under a clean MIT grant and TermiX's `bsc-mcp` under a declared
