@@ -8,7 +8,7 @@ import nextTs from 'eslint-config-next/typescript'
 export default defineConfig([
   ...nextVitals,
   ...nextTs,
-  globalIgnores(['.next/**', 'out/**', 'node_modules/**', 'next-env.d.ts', 'tools/**', 'archive/**', 'docs/**']),
+  globalIgnores(['.next/**', 'out/**', 'node_modules/**', 'next-env.d.ts', 'tools/**', 'archive/**', 'docs/**', '.claude/**']),
   {
     rules: {
       // Every page here is a server component rendered once per request, with no client
