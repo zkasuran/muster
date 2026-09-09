@@ -128,10 +128,22 @@ merchant account exists. The code for it is present and unused. `/hire/<shelf>` 
 human through the same flow with a browser wallet: it recovers the signer, reads the USD1
 balance, shows the envelope and refuses a replayed nonce with a 409.
 
-Stated plainly: the facilitator key holds no BNB at the time of writing, so a valid signature
-is answered with "signature valid, settlement unavailable" and the settled rung reads 0. The
-status page reports the key's balance live. No row anywhere on the site is marked `settled`
-without a payment that actually cleared.
+Stated plainly, and now proven on chain: all four reference agents have taken a real payment. A
+buyer signed one EIP-3009 authorization each, Muster's facilitator submitted the
+`transferWithAuthorization` and paid the gas, and 0.02 to 0.05 USD1 moved on BSC mainnet with a
+transaction hash. All four listings sit at the `settled` rung as a result:
+
+| Agent | Shelf | Settlement tx (BSC mainnet) |
+| --- | --- | --- |
+| Venus Health Factor Watch | health factor | [`0x487861e1…`](https://bscscan.com/tx/0x487861e1371b6c7d60560793312460812b3cddc7e8ddc9ea4077f61bacaba266) |
+| BSC Yield Router | yield | [`0x0974bf90…`](https://bscscan.com/tx/0x0974bf90994417cf7cff0403d1c49e3665a41e1327cada477e00f0d6a0987e38) |
+| Grid Ladder Planner | grid trading | [`0x02178d0c…`](https://bscscan.com/tx/0x02178d0c8e44d09e51fbe3dec48664221764ce1720b00b48fae1045cf5bd1949) |
+| PancakeSwap LP Range Check | rebalancing | [`0xc5263b67…`](https://bscscan.com/tx/0xc5263b6763d665aa716c36a0e9362fea4a62f5dcaab6927ecfc0d64f15e261e4) |
+
+The status page reports the key's balance and the settled count live. No row anywhere on the site is
+marked `settled` without a payment that actually cleared: each of the four is a real USD1 transfer to
+the payout address, verifiable on BscScan above. When the facilitator key runs out of gas, a valid
+signature is answered "signature valid, settlement unavailable" rather than faked.
 
 ## The four reference agents
 

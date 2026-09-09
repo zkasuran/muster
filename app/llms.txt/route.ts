@@ -5,7 +5,8 @@
  * tools/judge-walk.py walks), because a dangling link here is the same defect the judge walk fails on.
  *
  * The tone matches the rest of Muster: it says what a program can do, where the honest boundary is
- * (paid endpoints answer 402, preview is free, settled reads 0 until the facilitator holds gas), and
+ * (paid endpoints answer 402, preview is free, and the four reference agents have each taken a real
+ * settled USD1 payment on BSC mainnet), and
  * points at AGENTS.md for the safe-access contract. Origin-aware via publicOrigin, like the other
  * generated files, so it never names localhost as its own base.
  */
@@ -51,9 +52,12 @@ ${shelfLines}
 - \`GET ${o}/api/agent/health-factor?preview=1\` — the **capability contract for free**, so a buyer can see what a call buys before consenting to a price.
 - [Hire, for a human](${o}/hire/health-factor): the same flow driven by a browser wallet — sign one EIP-712 message, no transaction and no BNB needed from the buyer.
 
-Settlement is honest: Muster is its own EIP-3009 facilitator, but the facilitator key holds no gas at
-the time of writing, so a valid signature is answered "signature valid, settlement unavailable" and no
-row is marked \`settled\`. The [status page](${o}/status) reports the key's balance live.
+Settlement is real: Muster is its own EIP-3009 facilitator, and all four reference agents have each
+taken a real USD1 payment on BSC mainnet — the buyer signed one authorization, the facilitator
+submitted the transfer and paid the gas, and each listing sits at the \`settled\` rung with a
+verifiable transaction hash. The [status page](${o}/status) reports the settled count and the key's
+balance live; if the key ever runs out of gas a valid signature is answered "settlement unavailable"
+rather than faked.
 
 ## Compare, search, evidence
 
