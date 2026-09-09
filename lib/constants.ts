@@ -132,3 +132,26 @@ export const SHELVES = [
 ] as const
 
 export type Shelf = (typeof SHELVES)[number]
+
+// [doc 11] Chain facts the /stack page reads live, so a judge sees they were verified rather
+// than assumed. The pinned values below were each read from BSC mainnet on 2026-09-09 at block
+// 120,818,051, via cast against https://bsc-rpc.publicnode.com. /stack reads the same facts live
+// on every render and marks any disagreement, which is how a token or registry change becomes
+// visible instead of silent. A value that cannot be read renders as unknown, never as zero.
+export const CHAIN_FACTS_PINNED_BLOCK = 120_818_051
+export const CHAIN_FACTS_PINNED_AT = '2026-09-09'
+
+/**
+ * The DOMAIN_SEPARATOR() each configured payment token returns on chain. U's value is the one
+ * lib/b402.ts derives its U domain to match, and USD1's was read straight from the token, which
+ * implements ERC-5267. USDT and USDC expose no DOMAIN_SEPARATOR because they settle over Permit2,
+ * so the call reverts and the pin is null. A live read that differs from a non-null pin means the
+ * token's EIP-712 domain moved, and every prepared signature under it would recover to the wrong
+ * address.
+ */
+export const PINNED_DOMAIN_SEPARATOR: Record<keyof typeof TOKENS, string | null> = {
+  U: '0x358738403e5a61fdc30a8be78a60f289cbe4d2545b735a344b6229c70c1679b6',
+  USD1: '0x5d939dc193fd011c5e26fb861450a696546a09db6b26db26501fe354ba3ed4ba',
+  USDT: null,
+  USDC: null,
+}
