@@ -12,7 +12,7 @@ import { findAgent, BadRequest, FIRST_PARTY } from '@/lib/agents'
 import { build402, verifyPayment, settlePayment, paymentRequiredHeaders } from '@/lib/b402'
 import { verifyEip3009Envelope } from '@/lib/x402-local'
 import { settleEip3009, facilitatorState, markSettled } from '@/lib/settle'
-import { TOKENS } from '@/lib/constants'
+import { previewContract } from '@/lib/preview'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,29 +37,9 @@ function publicOrigin(req: NextRequest, fallback: URL): string {
   return fallback.origin
 }
 
-function contractOf(slug: string) {
-  const a = findAgent(slug)
-  if (!a) return null
-  return {
-    agent: a.name,
-    shelf: a.slug,
-    summary: a.summary,
-    price: {
-      base: a.priceBase,
-      decimals: TOKENS.USD1.decimals,
-      token: TOKENS.USD1.symbol,
-      asset: TOKENS.USD1.address,
-      human: `${Number(BigInt(a.priceBase)) / 10 ** TOKENS.USD1.decimals} ${TOKENS.USD1.symbol}`,
-      scheme: 'eip3009',
-      network: 'eip155:56',
-    },
-    inputs: a.inputs,
-    outputs: a.outputs,
-    reads: a.reads,
-    operator: 'Muster, first party. Disclosed on every row that renders.',
-    endpoint: `/api/agent/${a.slug}`,
-  }
-}
+// [doc 10] The preview contract now lives in lib/preview.ts, imported so this route and the
+// /docs/schemas page render one definition rather than two that can drift. The shape is unchanged.
+const contractOf = previewContract
 
 export async function GET(req: NextRequest, ctx: { params: Promise<{ shelf: string }> }) {
   const { shelf } = await ctx.params
