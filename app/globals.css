@@ -58,6 +58,33 @@ html {
   color-scheme: dark;
 }
 
+/*
+ * Light mode, selected not flipped. Each value is stepped for its own surface rather than inverted:
+ * the page is a soft off-white, cards are pure white so they lift, ink is near-black, and the accent
+ * darkens to an amber because BNB yellow #F0B90B is unreadable as text on white while a fill of it is
+ * fine. Because canvas flips too, bg-brand plus text-canvas stays legible in both modes. The green,
+ * red and amber semantics darken to clear 4.5:1 text contrast on white. Validated against the light
+ * surface, not eyeballed.
+ */
+html.light {
+  color-scheme: light;
+  --color-canvas: #F5F6F8;
+  --color-paper: #0B0E11;
+  --color-panel: #FFFFFF;
+  --color-panel-2: #EDEFF3;
+  --color-line: #D5DBE3;
+  --color-line-soft: #E6E9EE;
+  --color-ink: #12161C;
+  --color-ink-soft: #3A4552;
+  --color-ink-dim: #57626F;
+  --color-ink-faint: #8A94A1;
+  --color-brand: #8A6D00;
+  --color-up: #0E7A52;
+  --color-down: #C0392B;
+  --color-warn: #8A6300;
+  --color-unknown: #6B7480;
+}
+
 body {
   background: var(--color-canvas);
   color: var(--color-ink);
@@ -104,6 +131,12 @@ body {
     radial-gradient(1200px 520px at 20% 0%, rgba(240, 185, 11, 0.07), transparent 60%),
     radial-gradient(900px 400px at 90% 10%, rgba(255, 255, 255, 0.025), transparent 60%);
 }
+/* In light mode the darkening reads wrong on a pale page, so the field warms very slightly instead. */
+html.light .hero-field {
+  background:
+    radial-gradient(1200px 520px at 20% 0%, rgba(240, 185, 11, 0.10), transparent 60%),
+    radial-gradient(900px 400px at 90% 10%, rgba(12, 14, 17, 0.02), transparent 60%);
+}
 /* A proportion bar, CSS only, so it reads with scripting off. The track sits on the raised
    surface value so the fill has something to read against, and the fill carries a rounded
    data-end anchored to the baseline. */
@@ -120,3 +153,23 @@ body {
    ink on hover so the surface feels responsive without motion. */
 .card { background: var(--color-panel); border: 1px solid var(--color-line); border-radius: var(--radius-lg); transition: border-color 0.15s ease, background-color 0.15s ease; }
 .card:hover { border-color: var(--color-ink-dim); background: var(--color-panel-2); }
+
+/* A category tile carries a faint motif in its own semantic hue, so the four jobs read apart at a
+   glance without a downloaded image or a glow. The motif is a soft corner wash, drawn with the
+   category colour at low alpha over the flat panel, plus a thin top rule in the same hue. One class
+   per category sets the hue via a custom property; the tile shape is shared. Palette only, no new
+   colour, no gradient stack, nothing to license. */
+.tile { position: relative; overflow: hidden; }
+.tile::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0.5;
+  background: radial-gradient(420px 200px at 100% 0%, var(--tile-hue, transparent), transparent 70%);
+}
+.tile::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px;
+  background: var(--tile-edge, var(--color-line));
+}
+.tile > * { position: relative; }
+.tile-rebalancing { --tile-hue: rgba(240, 185, 11, 0.10); --tile-edge: var(--color-brand); }
+.tile-yield       { --tile-hue: rgba(31, 169, 122, 0.12); --tile-edge: var(--color-up); }
+.tile-health-factor { --tile-hue: rgba(228, 87, 76, 0.12); --tile-edge: var(--color-down); }
+.tile-grid-trading  { --tile-hue: rgba(139, 151, 166, 0.12); --tile-edge: var(--color-ink-dim); }

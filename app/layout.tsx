@@ -32,9 +32,15 @@ export const metadata: Metadata = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // Set the theme class before first paint so there is no flash of the wrong mode. Dark is the
+  // default because BNB Chain's brand canvas is dark; a saved choice or the OS preference overrides.
+  const noFlash = `(function(){try{var t=localStorage.getItem('muster-theme');if(!t){t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}document.documentElement.classList.add(t);}catch(e){document.documentElement.classList.add('dark');}})();`
   return (
-    <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
-      <body className="font-sans">{children}</body>
+    <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: noFlash }} />
+      </head>
+      <body className="font-sans" suppressHydrationWarning>{children}</body>
     </html>
   )
 }

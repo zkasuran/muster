@@ -1,8 +1,14 @@
 import Link from 'next/link'
 import { SHELVES } from '@/lib/constants'
 import { SHELF_TITLES } from '@/lib/classify'
+import { ThemeToggle } from './theme-toggle'
 
-/** Plain links, so the whole site is walkable with scripting off. */
+/**
+ * The header, ordered by what a buyer does. The four shelves and Compare are the browse path, then
+ * List your agent for the supply side. The verification and partner pages a judge wants are grouped
+ * under one More control rather than spread across the bar, so the buyer flow reads first. Plain
+ * links and a details/summary menu, so the whole site is still walkable with scripting off.
+ */
 export function Nav() {
   return (
     <header className="border-b border-line">
@@ -19,61 +25,60 @@ export function Nav() {
           <Link href="/compare" className="text-ink-soft hover:text-brand">
             Compare
           </Link>
-          <Link href="/report" className="text-ink-dim hover:text-brand">
-            Report
+          <Link href="/list-agent" className="text-ink-soft hover:text-brand">
+            List your agent
           </Link>
-          <Link href="/status" className="text-ink-dim hover:text-brand">
-            Status
-          </Link>
-          {/* [doc 03] Coverage is the Agent Diversity proof, so a judge reaches it from any page. */}
-          <Link href="/coverage" className="text-ink-dim hover:text-brand">
-            Coverage
-          </Link>
-          {/* [doc 08] the money ledger */}
-          <Link href="/ledger" className="text-ink-dim hover:text-brand">
-            Ledger
-          </Link>
-          {/* [doc 16] Altana partner track session panel */}
-          <Link href="/altana" className="text-ink-dim hover:text-brand">
-            Altana
-          </Link>
-          {/* [doc 06] the quality methodology and anti-gaming summary */}
-          <Link href="/quality" className="text-ink-dim hover:text-brand">
-            Quality
-          </Link>
-          {/* [doc 13] the four partner tracks off one build */}
-          <Link href="/partners" className="text-ink-dim hover:text-brand">
-            Partners
-          </Link>
-          {/* [doc 11] the BNB Chain facts, read live and checked against the pinned values */}
-          <Link href="/stack" className="text-ink-dim hover:text-brand">
-            Stack
-          </Link>
-          {/* [doc 10] the public docs site: how it works, conformance, schemas and policy */}
-          <Link href="/docs" className="text-ink-dim hover:text-brand">
-            Docs
-          </Link>
+          {/* The verification, money and partner pages, grouped so a judge reaches every one
+              without the buyer flow being crowded off the bar. Open on hover or click, keyboard
+              reachable, and still a plain list with scripting off. */}
+          <details className="group relative">
+            <summary className="cursor-pointer list-none text-ink-dim hover:text-brand">
+              More
+            </summary>
+            <div className="absolute left-0 z-10 mt-2 flex w-44 flex-col gap-1 rounded-lg border border-line bg-panel p-2 text-sm shadow-lg">
+              <MoreLink href="/status">Status and data</MoreLink>
+              <MoreLink href="/coverage">Coverage</MoreLink>
+              <MoreLink href="/report">Advantage report</MoreLink>
+              <MoreLink href="/quality">Quality method</MoreLink>
+              <MoreLink href="/ledger">Ledger</MoreLink>
+              <MoreLink href="/partners">Partners</MoreLink>
+              <MoreLink href="/altana">Altana sessions</MoreLink>
+              <MoreLink href="/stack">BNB stack</MoreLink>
+              <MoreLink href="/docs">Docs and API</MoreLink>
+            </div>
+          </details>
         </nav>
-        <form action="/search" method="get" className="ml-auto flex items-center gap-2">
-          <label htmlFor="q" className="sr-only">
-            Search agents
-          </label>
-          <input
-            id="q"
-            name="q"
-            type="search"
-            placeholder="Search agents"
-            className="w-44 rounded-lg border border-line bg-panel px-3 py-1.5 text-sm text-ink outline-none focus:border-ink-dim md:w-56"
-          />
-          <button
-            type="submit"
-            className="rounded-md border border-line px-3 py-1.5 text-sm text-ink-soft hover:border-brand hover:text-brand"
-          >
-            Search
-          </button>
-        </form>
+        <div className="ml-auto flex items-center gap-2">
+          <form action="/search" method="get" className="flex items-center gap-2">
+            <label htmlFor="q" className="sr-only">
+              Search agents
+            </label>
+            <input
+              id="q"
+              name="q"
+              type="search"
+              placeholder="Search agents"
+              className="w-36 rounded-lg border border-line bg-panel px-3 py-1.5 text-sm text-ink outline-none focus:border-ink-dim md:w-48"
+            />
+            <button
+              type="submit"
+              className="rounded-md border border-line px-3 py-1.5 text-sm text-ink-soft hover:border-brand hover:text-brand"
+            >
+              Search
+            </button>
+          </form>
+          <ThemeToggle />
+        </div>
       </div>
     </header>
+  )
+}
+
+function MoreLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link href={href} className="rounded-md px-2 py-1 text-ink-soft hover:bg-panel-2 hover:text-brand">
+      {children}
+    </Link>
   )
 }
 

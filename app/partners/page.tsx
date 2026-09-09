@@ -33,7 +33,27 @@ export default function PartnersPage() {
           rather than dressed up as done.
         </p>
 
+        {/* A scannable index of the four tracks, so a judge sees the shape before the prose. Each
+            card jumps to the honest write-up below and links the one surface that proves it. */}
+        <div className="mt-6 grid gap-3 md:grid-cols-2">
+          {[
+            { id: 'termix', name: 'TermiX', one: 'The marketplace itself, plus the Agent Advantage Report their eligibility gate requires.', proof: '/report', proofLabel: 'the report' },
+            { id: 'pancakeswap', name: 'PancakeSwap', one: 'A rebalancing agent that reads a live PancakeSwap v3 pool and reports range and drift at one block.', proof: '/hire/rebalancing', proofLabel: 'hire it' },
+            { id: 'altana', name: 'Altana', one: 'Each reference agent holds a self-custodial wallet with a scoped session read straight off the chain.', proof: '/altana', proofLabel: 'the session panel' },
+            { id: 'altlayer', name: 'AltLayer and 8004scan', one: '8004scan used as a cross-check with its own lag on screen, never as the source a render depends on.', proof: '/status', proofLabel: 'the data page' },
+          ].map((t) => (
+            <a key={t.id} href={`#${t.id}`} className="card block p-4">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="font-display text-xl text-ink">{t.name}</span>
+                <Link href={t.proof} className="text-xs text-brand hover:underline">{t.proofLabel}</Link>
+              </div>
+              <p className="mt-1 text-sm text-ink-dim">{t.one}</p>
+            </a>
+          ))}
+        </div>
+
         <Partner
+          id="termix"
           name="TermiX"
           track="Agent marketplace track, $6,000 / $3,000 / $1,000, judged independently of the main track"
         >
@@ -65,6 +85,7 @@ export default function PartnersPage() {
         </Partner>
 
         <Partner
+          id="pancakeswap"
           name="PancakeSwap"
           track="1,000 CAKE, no published rubric"
         >
@@ -92,6 +113,7 @@ export default function PartnersPage() {
         </Partner>
 
         <Partner
+          id="altana"
           name="Altana"
           track="50,000 XP, winner takes all, read on chain rather than from the pitch"
         >
@@ -117,6 +139,7 @@ export default function PartnersPage() {
         </Partner>
 
         <Partner
+          id="altlayer"
           name="AltLayer, 8004scan and AltLLM"
           track="8004scan Pro tier plus AltLLM credits, amounts to be confirmed"
         >
@@ -159,9 +182,9 @@ export default function PartnersPage() {
   )
 }
 
-function Partner({ name, track, children }: { name: string; track: string; children: React.ReactNode }) {
+function Partner({ id, name, track, children }: { id: string; name: string; track: string; children: React.ReactNode }) {
   return (
-    <section className="mt-8 rounded-lg border border-line bg-panel p-4 md:p-5">
+    <section id={id} className="mt-8 scroll-mt-6 rounded-lg border border-line bg-panel p-4 md:p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <h2 className="font-display text-2xl text-ink">{name}</h2>
         <span className="text-xs text-ink-faint">{track}</span>

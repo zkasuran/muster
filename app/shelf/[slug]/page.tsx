@@ -7,11 +7,21 @@ import { ScoreCell } from '@/components/score'
 import { num } from '@/components/fresh'
 import { shelfListings, shelfCount, rungCounts, offShelf, shelfByScore, type ShelfQuery, type ScoredCard } from '@/lib/queries'
 import { contractFor, SHELF_TITLES } from '@/lib/classify'
-import { SHELVES } from '@/lib/constants'
+import { SHELVES, TOKENS } from '@/lib/constants'
+import { findAgent } from '@/lib/agents'
 import { EVIDENCE_ORDER, type EvidenceRung, type Shelf } from '@/lib/types'
 import { cn } from '@/lib/cn'
 
 export const dynamic = 'force-dynamic'
+
+// The buyer's job in their own words, the same line the landing cards lead with, so a shelf opened
+// from anywhere reads as "here is what you can get done" before "here is a category".
+const JOB_LINE: Record<Shelf, string> = {
+  'health-factor': 'Watch a loan on Venus and warn before it liquidates.',
+  yield: 'Find where capital earns the most on BSC right now, after cost.',
+  rebalancing: 'Check whether a PancakeSwap LP position has drifted out of range.',
+  'grid-trading': 'Plan a grid around a live pool price, level by level.',
+}
 
 export function generateStaticParams() {
   return SHELVES.map((slug) => ({ slug }))
@@ -26,21 +36,29 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 type SP = Record<string, string | string[] | undefined>
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? ''
 
-function parse(sp: SP): ShelfQuery & { view: 'cards' | 'table'; page: number } {
+const PAGE_SIZES = [10, 20, 50] as const
+
+function parse(sp: SP): ShelfQuery & { view: 'cards' | 'table'; page: number; perPage: number } {
   const rung = first(sp['rung']) as EvidenceRung
   const sort = first(sp['sort'])
   const page = Math.max(1, Number(first(sp['page']) || 1) || 1)
+  const perPageRaw = Number(first(sp['per']) || 10)
+  const perPage = (PAGE_SIZES as readonly number[]).includes(perPageRaw) ? perPageRaw : 10
+  // Duplicates collapse by default. `all=1` opens every near-identical listing from one operator.
+  const collapse = first(sp['all']) !== '1'
   return {
     minRung: (EVIDENCE_ORDER as readonly string[]).includes(rung) ? rung : undefined,
     payable: first(sp['payable']) === '1',
     who: first(sp['who']) === 'ours' ? 'ours' : first(sp['who']) === 'third' ? 'third' : undefined,
     unique: first(sp['unique']) === '1',
+    collapse,
     q: first(sp['q']) || undefined,
     sort: (['rung', 'probe', 'name', 'id', 'price'] as const).find((s) => s === sort) ?? 'rung',
     view: first(sp['view']) === 'table' ? 'table' : 'cards',
     page,
-    limit: 40,
-    offset: (page - 1) * 40,
+    perPage,
+    limit: perPage,
+    offset: (page - 1) * perPage,
   }
 }
 
@@ -66,27 +84,53 @@ export default async function ShelfPage({ params, searchParams }: { params: Prom
   const all = shelfCount(shelf, {})
   const rungs = rungCounts(shelf)
   const ours = shelfListings(shelf, { who: 'ours', limit: 1 })[0]?.agentId
-  const pages = Math.max(1, Math.ceil(total / 40))
+  const pages = Math.max(1, Math.ceil(total / f.perPage))
   // [doc 03] The off-shelf drawer reads the whole shelf, not the current facets, so the count of
   // candidates we can read but do not list is always the shelf's own, docs/03-TAXONOMY.md 5.3.
   const off = offShelf(shelf)
   // [doc 06] The shelf ranked by the evidence score's confidence floor, section 2's M_lo sort.
   const byScore = shelfByScore(shelf, 12)
+  // The hireable reference agent for this shelf, shown as a hire panel at the top. Only surfaced
+  // when it is actually payable, so the panel never offers a hire the endpoint would not honour.
+  const hireAgent = rungs.payable + rungs.settled > 0 ? findAgent(shelf) : null
+  const hirePrice = hireAgent ? `${Number(BigInt(hireAgent.priceBase)) / 10 ** TOKENS.USD1.decimals} USD1` : ''
 
   return (
     <>
       <Nav />
       <main className="mx-auto max-w-6xl px-5 py-8 md:px-8">
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="font-display text-4xl md:text-5xl">{contract.title}</h1>
-            <p className="mt-2 max-w-2xl text-ink-dim">{contract.question}</p>
+          <div className="min-w-0">
+            <p className="text-sm text-ink-dim">{JOB_LINE[shelf]}</p>
+            <h1 className="mt-1 font-display text-4xl md:text-5xl">{contract.title}</h1>
+            <p className="mt-2 max-w-2xl text-sm text-ink-faint">{contract.question}</p>
           </div>
           <div className="flex items-center gap-2 text-xs text-ink-faint">
             <span className="num text-2xl text-ink">{num(all)}</span> on this shelf ·
             <span className="num text-brand">{num(rungs.payable + rungs.settled)}</span> hireable
           </div>
         </div>
+
+        {/* The one hireable agent on this shelf, lifted to the top as a hire panel so the buyer's
+            first move is to hire or try it free, not to read a directory. This is the same agent the
+            landing card offers; the list below is for comparing the rest of the category against it. */}
+        {hireAgent && (
+          <div className="mt-6 card flex flex-wrap items-center justify-between gap-4 p-5">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-display text-2xl text-ink">{hireAgent.name}</span>
+                <span className="rounded-sm border border-warn/50 px-1.5 text-xs text-warn">ours</span>
+                <span className="rounded-md border border-up/40 px-2 py-0.5 text-xs text-up">hireable now</span>
+              </div>
+              <p className="mt-1 max-w-2xl text-sm text-ink-dim">{hireAgent.summary}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="num text-sm text-brand">{hirePrice} / call</span>
+              <Link href={`/hire/${shelf}`} className="rounded-md bg-brand px-4 py-2 text-sm font-semibold text-canvas">Hire</Link>
+              <Link href={`/hire/${shelf}#see-it-work`} className="rounded-md border border-line px-4 py-2 text-sm text-ink-soft hover:border-brand hover:text-brand">See it free</Link>
+            </div>
+          </div>
+        )}
 
         {all < 30 && (
           <p className="mt-4 max-w-3xl rounded-lg border border-line bg-panel px-4 py-3 text-sm text-ink-dim">
@@ -157,12 +201,54 @@ export default async function ShelfPage({ params, searchParams }: { params: Prom
 
           <section>
             <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-ink-faint">
-              <span><span className="num text-ink">{num(total)}</span> match{total === 1 ? 'es' : ''}{total !== all && <> of {num(all)}</>} · page {f.page} of {pages}</span>
-              <span className="inline-flex overflow-hidden rounded-md border border-line">
-                <Link href={href(slug, sp, { view: null })} className={cn('px-3 py-1', f.view === 'cards' ? 'bg-panel-2 text-ink' : 'text-ink-dim hover:text-ink')}>cards</Link>
-                <Link href={href(slug, sp, { view: 'table' })} className={cn('border-l border-line px-3 py-1', f.view === 'table' ? 'bg-panel-2 text-ink' : 'text-ink-dim hover:text-ink')}>table</Link>
+              <span>
+                <span className="num text-ink">{num(total)}</span>{' '}
+                {f.collapse ? (total === 1 ? 'listing' : 'listings') : total === 1 ? 'match' : 'matches'}
+                {total !== all && <> of {num(all)}</>} · page {f.page} of {pages}
               </span>
+              <div className="flex items-center gap-3">
+                {/* Page size: how many rows a page shows, so a long shelf is read in even chunks. */}
+                <span className="inline-flex items-center gap-1">
+                  <span className="hidden sm:inline">per page</span>
+                  <span className="inline-flex overflow-hidden rounded-md border border-line">
+                    {PAGE_SIZES.map((n, i) => (
+                      <Link
+                        key={n}
+                        href={href(slug, sp, { per: n === 10 ? null : String(n), page: null })}
+                        className={cn('px-2.5 py-1', i > 0 && 'border-l border-line', f.perPage === n ? 'bg-panel-2 text-ink' : 'text-ink-dim hover:text-ink')}
+                      >
+                        {n}
+                      </Link>
+                    ))}
+                  </span>
+                </span>
+                <span className="inline-flex overflow-hidden rounded-md border border-line">
+                  <Link href={href(slug, sp, { view: null })} className={cn('px-3 py-1', f.view === 'cards' ? 'bg-panel-2 text-ink' : 'text-ink-dim hover:text-ink')}>cards</Link>
+                  <Link href={href(slug, sp, { view: 'table' })} className={cn('border-l border-line px-3 py-1', f.view === 'table' ? 'bg-panel-2 text-ink' : 'text-ink-dim hover:text-ink')}>table</Link>
+                </span>
+              </div>
             </div>
+
+            {/* Duplicate collapse notice, so a judge knows the count is deduplicated and can open it.
+                Only shown when collapsing actually folded something, so it is never noise. */}
+            {f.collapse && all > total && (
+              <p className="mt-2 text-xs text-ink-dim">
+                Near-identical listings from one operator are folded to a single row.{' '}
+                <Link href={href(slug, sp, { all: '1', page: null })} className="text-brand hover:underline">
+                  Show all {num(all)}
+                </Link>
+                .
+              </p>
+            )}
+            {!f.collapse && (
+              <p className="mt-2 text-xs text-ink-dim">
+                Showing every listing, including near-identical ones from one operator.{' '}
+                <Link href={href(slug, sp, { all: null, page: null })} className="text-brand hover:underline">
+                  Fold duplicates
+                </Link>
+                .
+              </p>
+            )}
 
             {listings.length === 0 ? (
               <p className="mt-4 rounded-lg border border-line bg-panel p-6 text-sm text-ink-dim">

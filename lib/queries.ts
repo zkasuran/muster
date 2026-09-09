@@ -249,6 +249,9 @@ export interface ListingCard {
   lastProbeVerdict: string | null
   firstParty: number
   clusterSize: number
+  /** When a row stands for a group of near-identical listings from one operator, how many rows
+   *  it represents including itself. 1 when the row is distinct or the view is not collapsed. */
+  dupeCount: number
 }
 
 const CARD_SELECT = `
@@ -257,6 +260,7 @@ SELECT l.listingId, l.agentId, l.category, l.evidenceTier, l.visibility,
        l.inBazaar, l.priceBase, l.priceToken, l.priceDecimals, l.priceScheme,
        l.lastProbeAt, l.lastProbeVerdict, l.firstParty,
        json_array_length(a.endpoints) AS endpointCount,
+       1 AS dupeCount,
        (SELECT COUNT(*) FROM agent s WHERE s.duplicateClusterId IS NOT NULL
           AND s.duplicateClusterId = a.duplicateClusterId) AS clusterSize
 FROM listing l JOIN agent a ON a.chainId = l.chainId AND a.agentId = l.agentId`
@@ -270,6 +274,15 @@ export interface ShelfQuery {
   who?: 'ours' | 'third'
   /** Hide rows that share a registration record with another row. */
   unique?: boolean
+  /**
+   * Collapse near-identical listings from one operator to a single representative row. Two rows
+   * fold together when they share an owner and a description, which is the shape the registry spam
+   * actually takes: one operator mints the same record hundreds of times, and duplicateClusterId
+   * misses it because a byte differs. The representative is the best-evidenced row in the group, and
+   * the card carries how many it stands for. On by default, because a shelf of 43 identical rows
+   * from one wallet is the "one operator's catalogue" problem the whole thesis names.
+   */
+  collapse?: boolean
   /** A substring over name and description. */
   q?: string
   sort?: 'rung' | 'probe' | 'name' | 'id' | 'price'
@@ -277,8 +290,11 @@ export interface ShelfQuery {
   offset?: number
 }
 
-const RUNG_RANK = `CASE l.evidenceTier WHEN 'settled' THEN 6 WHEN 'payable' THEN 5 WHEN 'probed' THEN 4
+// The rung rank, parameterised by the column reference so it works both against the joined
+// listing/agent tables (l.evidenceTier) and against a projected subquery result (evidenceTier).
+const rungRankOn = (col: string) => `CASE ${col} WHEN 'settled' THEN 6 WHEN 'payable' THEN 5 WHEN 'probed' THEN 4
        WHEN 'reachable' THEN 3 WHEN 'declared' THEN 2 ELSE 1 END`
+const RUNG_RANK = rungRankOn('l.evidenceTier')
 
 function shelfWhere(shelf: Shelf, f: ShelfQuery): { sql: string; args: unknown[] } {
   const w: string[] = ["l.chainId = ?", "l.category = ?", "l.visibility IN ('listed','indexed')"]
@@ -292,38 +308,128 @@ function shelfWhere(shelf: Shelf, f: ShelfQuery): { sql: string; args: unknown[]
   return { sql: w.join(' AND '), args: a }
 }
 
-function shelfOrder(sort: ShelfQuery['sort']): string {
+// The order clause, parameterised by prefix so it serves both the flat query (columns come from
+// l./a.) and the collapsed query (columns are projected bare in the CTE result). p is 'l.'/'a.'
+// for the flat path and '' for the collapsed outer select.
+function shelfOrderOn(sort: ShelfQuery['sort'], lp: string, ap: string): string {
   switch (sort) {
-    case 'probe': return 'l.lastProbeAt IS NULL, l.lastProbeAt DESC, CAST(l.agentId AS INTEGER) ASC'
-    case 'name': return "lower(coalesce(a.name,'zzzz')) ASC, CAST(l.agentId AS INTEGER) ASC"
-    case 'id': return 'CAST(l.agentId AS INTEGER) ASC'
-    case 'price': return 'l.priceBase IS NULL, CAST(l.priceBase AS REAL) ASC, CAST(l.agentId AS INTEGER) ASC'
-    default: return `${RUNG_RANK} DESC, l.firstParty ASC, CAST(l.agentId AS INTEGER) ASC`
+    case 'probe': return `${lp}lastProbeAt IS NULL, ${lp}lastProbeAt DESC, CAST(${lp}agentId AS INTEGER) ASC`
+    case 'name': return `lower(coalesce(${ap}name,'zzzz')) ASC, CAST(${lp}agentId AS INTEGER) ASC`
+    case 'id': return `CAST(${lp}agentId AS INTEGER) ASC`
+    case 'price': return `${lp}priceBase IS NULL, CAST(${lp}priceBase AS REAL) ASC, CAST(${lp}agentId AS INTEGER) ASC`
+    default: return `${rungRankOn(`${lp}evidenceTier`)} DESC, ${lp}firstParty ASC, CAST(${lp}agentId AS INTEGER) ASC`
   }
 }
+function shelfOrder(sort: ShelfQuery['sort']): string {
+  return shelfOrderOn(sort, 'l.', 'a.')
+}
+
+// The duplicate key a collapse folds on: one operator's identical record, repeated. A first-party
+// row is given a key unique to itself (its listingId) so ours can never be folded into a group or
+// fold a third-party row away. A row with no description is keyed by its own id too, because a
+// missing description is not evidence that two rows are the same listing.
+const DUPE_KEY = `CASE
+  WHEN l.firstParty = 1 OR a.description IS NULL OR trim(a.description) = ''
+  THEN l.listingId
+  ELSE lower(a.owner) || '\\n' || lower(a.description) END`
 
 /**
  * The shelf, filtered and ordered. Default order is by how much is known, then registration
  * order, so the ordering is explainable in one sentence. Every filter is a plain query
  * parameter, so the whole facet rail works with scripting off.
+ *
+ * When collapse is on, near-identical listings from one operator fold to a single representative:
+ * the best-evidenced row in each duplicate group, carrying dupeCount for how many it stands for.
+ * A window function ranks rows within each group by rung, so the representative is the strongest
+ * one and the count is exact. First-party rows are keyed to themselves, so ours is never folded.
  */
 export function shelfListings(shelf: Shelf, f: ShelfQuery | number = {}): ListingCard[] {
   const q: ShelfQuery = typeof f === 'number' ? { limit: f } : f
   const { sql, args } = shelfWhere(shelf, q)
+  const limit = Math.min(q.limit ?? 60, 200)
+  const offset = q.offset ?? 0
+  if (!q.collapse) {
+    return many<ListingCard>(
+      `${CARD_SELECT}
+       WHERE ${sql}
+       ORDER BY ${shelfOrder(q.sort)}
+       LIMIT ? OFFSET ?`,
+      ...args,
+      limit,
+      offset,
+    )
+  }
+  // Collapsed: rank within each duplicate group by rung (best first), keep only the top of each
+  // group, and attach the group size. The outer order is the requested sort over representatives.
   return many<ListingCard>(
-    `${CARD_SELECT}
-     WHERE ${sql}
-     ORDER BY ${shelfOrder(q.sort)}
+    `WITH ranked AS (
+       SELECT l.listingId, l.agentId, l.category, l.evidenceTier, l.visibility,
+              a.name, a.description, a.owner, a.declaresX402, a.declaresActive,
+              l.inBazaar, l.priceBase, l.priceToken, l.priceDecimals, l.priceScheme,
+              l.lastProbeAt, l.lastProbeVerdict, l.firstParty,
+              json_array_length(a.endpoints) AS endpointCount,
+              (SELECT COUNT(*) FROM agent s WHERE s.duplicateClusterId IS NOT NULL
+                 AND s.duplicateClusterId = a.duplicateClusterId) AS clusterSize,
+              COUNT(*)      OVER (PARTITION BY ${DUPE_KEY}) AS dupeCount,
+              ROW_NUMBER()  OVER (PARTITION BY ${DUPE_KEY}
+                                  ORDER BY ${RUNG_RANK} DESC, l.firstParty ASC, CAST(l.agentId AS INTEGER) ASC) AS rn
+       FROM listing l JOIN agent a ON a.chainId = l.chainId AND a.agentId = l.agentId
+       WHERE ${sql}
+     )
+     SELECT * FROM ranked WHERE rn = 1
+     ORDER BY ${shelfOrderOn(q.sort, '', '')}
      LIMIT ? OFFSET ?`,
     ...args,
-    Math.min(q.limit ?? 60, 200),
-    q.offset ?? 0,
+    limit,
+    offset,
   )
 }
 
 export function shelfCount(shelf: Shelf, f: ShelfQuery = {}): number {
   const { sql, args } = shelfWhere(shelf, f)
-  return one<{ c: number }>(`SELECT COUNT(*) c FROM listing l JOIN agent a ON a.chainId = l.chainId AND a.agentId = l.agentId WHERE ${sql}`, ...args)?.c ?? 0
+  if (!f.collapse) {
+    return one<{ c: number }>(`SELECT COUNT(*) c FROM listing l JOIN agent a ON a.chainId = l.chainId AND a.agentId = l.agentId WHERE ${sql}`, ...args)?.c ?? 0
+  }
+  // The number of distinct duplicate groups, which is how many rows the collapsed view shows.
+  return one<{ c: number }>(
+    `SELECT COUNT(DISTINCT ${DUPE_KEY}) c
+     FROM listing l JOIN agent a ON a.chainId = l.chainId AND a.agentId = l.agentId
+     WHERE ${sql}`,
+    ...args,
+  )?.c ?? 0
+}
+
+/**
+ * The best-evidenced listings across all four shelves, for a ranked strip on the landing. Ordered by
+ * how far up the ladder each has climbed, then by the most recent probe, so the head of the list is the
+ * agent the marketplace actually knows the most about right now. The order is real signal only: the
+ * rung and the probe time are both measured, so there is no "most hired" or rating here that we cannot
+ * back. First-party rows tie-break last, so being ours is never what puts a row at the top. Duplicates
+ * are folded to one representative, the same fold the shelves use, so one operator cannot flood it.
+ */
+export function rankedAcrossShelves(limit = 6): ListingCard[] {
+  return many<ListingCard>(
+    `WITH ranked AS (
+       SELECT l.listingId, l.agentId, l.category, l.evidenceTier, l.visibility,
+              a.name, a.description, a.owner, a.declaresX402, a.declaresActive,
+              l.inBazaar, l.priceBase, l.priceToken, l.priceDecimals, l.priceScheme,
+              l.lastProbeAt, l.lastProbeVerdict, l.firstParty,
+              json_array_length(a.endpoints) AS endpointCount,
+              1 AS dupeCount,
+              (SELECT COUNT(*) FROM agent s WHERE s.duplicateClusterId IS NOT NULL
+                 AND s.duplicateClusterId = a.duplicateClusterId) AS clusterSize,
+              ROW_NUMBER() OVER (PARTITION BY ${DUPE_KEY}
+                                 ORDER BY ${rungRankOn('l.evidenceTier')} DESC, l.lastProbeAt DESC) AS rn
+       FROM listing l JOIN agent a ON a.chainId = l.chainId AND a.agentId = l.agentId
+       WHERE l.chainId = ? AND l.visibility IN ('listed','indexed')
+         AND ${rungRankOn('l.evidenceTier')} >= 4
+     )
+     SELECT * FROM ranked WHERE rn = 1
+     ORDER BY ${rungRankOn('evidenceTier')} DESC, firstParty ASC, lastProbeAt DESC
+     LIMIT ?`,
+    CHAIN_ID,
+    Math.min(limit, 40),
+  )
 }
 
 /**
@@ -340,8 +446,7 @@ export function topHireablePerShelf(): { shelf: Shelf; card: ListingCard | null 
   }))
 }
 
-/** The last probes, for a live strip on the landing page. Real rows, never a fixture. */
-export function recentProbes(limit = 8): { agentId: string; name: string | null; category: Shelf; verdict: string; httpStatus: number | null; sawPaymentRequired: number; observedAt: number; host: string }[] {
+/** The last probes, for a live strip on the landing page. Real rows, never a fixture. */export function recentProbes(limit = 8): { agentId: string; name: string | null; category: Shelf; verdict: string; httpStatus: number | null; sawPaymentRequired: number; observedAt: number; host: string }[] {
   return many<{ agentId: string; name: string | null; category: Shelf; verdict: string; httpStatus: number | null; sawPaymentRequired: number; observedAt: number; url: string }>(
     `SELECT p.agentId, a.name, l.category, p.verdict, p.httpStatus, p.sawPaymentRequired, p.observedAt, p.url
      FROM probeResult p JOIN listing l ON l.listingId = p.listingId JOIN agent a ON a.chainId = l.chainId AND a.agentId = l.agentId
@@ -407,6 +512,7 @@ export function agentDetail(agentId: string): AgentDetail | null {
   return {
     listingId: primary?.listingId ?? `${CHAIN_ID}:${agentId}:none`,
     agentId,
+    dupeCount: 1,
     category: primary?.category ?? 'yield',
     name: (a['name'] as string) ?? null,
     description: (a['description'] as string) ?? null,
@@ -827,6 +933,7 @@ export function shelfByScore(shelf: Shelf, limit = 12): ScoredCard[] {
             l.lastProbeAt, l.lastProbeVerdict, l.firstParty,
             l.scoreValue, l.scoreConfidence,
             json_array_length(a.endpoints) AS endpointCount,
+            1 AS dupeCount,
             (SELECT COUNT(*) FROM agent s WHERE s.duplicateClusterId IS NOT NULL
                AND s.duplicateClusterId = a.duplicateClusterId) AS clusterSize,
             coalesce(CAST(json_extract(m.v, '$.clients') AS INTEGER), 0) AS distinctAuthors

@@ -24,7 +24,13 @@ if 'unknown' in t and 'Registered on chain unknown' in t: f('major', '/', 'chain
 depth = {}; shelf_text = {}
 for sh in ['rebalancing', 'grid-trading', 'yield', 'health-factor']:
     s, h = get(f'/shelf/{sh}'); t = text(h); shelf_text[sh] = t
-    m = re.search(r'([0-9,]+) match', t); depth[sh] = int(m.group(1).replace(',', '')) if m else None
+    # The shelf header reads "N listings of M" when duplicates are collapsed, or "N match(es)"
+    # when not. Depth for the imbalance check is the shelf's whole population M (or N when there is
+    # no "of M"), so a collapsed count never reads as a thinner shelf than it is.
+    m = (re.search(r'([0-9,]+) listings? of ([0-9,]+)', t)
+         or re.search(r'([0-9,]+) match', t)
+         or re.search(r'([0-9,]+) listings?', t))
+    depth[sh] = int(m.group(m.lastindex).replace(',', '')) if m else None
     if s != 200: f('blocker', f'/shelf/{sh}', f'HTTP {s}', 'Agent Diversity', 'shelf must load')
     if 'Inputs it must accept' not in t: f('major', f'/shelf/{sh}', 'contract block missing', 'Functionality', 'render contract')
     if 'ours' not in t: f('major', f'/shelf/{sh}', 'no first-party row labelled ours', 'Agent Diversity', 'seed first-party row')

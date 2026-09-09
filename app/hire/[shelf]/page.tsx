@@ -55,7 +55,7 @@ export default async function HirePage({ params }: { params: Promise<{ shelf: st
           <Fact k="Network" v="BNB Smart Chain, eip155:56" />
         </section>
 
-        <section className="mt-8">
+        <section id="see-it-work" className="mt-8 scroll-mt-6">
           <h2 className="text-sm uppercase tracking-wide text-ink-faint">1. See it work, free</h2>
           <p className="mt-2 mb-3 text-sm text-ink-dim">
             Runs the agent on its documented example input against the live chain and shows the
