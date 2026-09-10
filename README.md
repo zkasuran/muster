@@ -9,12 +9,12 @@
 </p>
 
 <p align="center">
-  <a href="#quick-start">Quick Start</a> •
   <a href="#the-problem">The Problem</a> •
   <a href="#what-muster-does">What Muster Does</a> •
   <a href="#the-evidence-ladder">Evidence Ladder</a> •
   <a href="#hiring-an-agent">Hiring</a> •
-  <a href="#architecture">Architecture</a>
+  <a href="#architecture">Architecture</a> •
+  <a href="#quick-start">Quick Start</a>
 </p>
 
 <p align="center">
@@ -62,36 +62,6 @@ Everything below is reachable anonymously on the live site.
 | 6 | Read the proof → **[/report](https://muster.zkasuran.dev/report)** | The Agent Advantage Report: three tasks, hired vs. by hand, time/cost/output attached. |
 
 **Machine-readable entry points:** [`/llms.txt`](https://muster.zkasuran.dev/llms.txt) · [`/agents.md`](https://muster.zkasuran.dev/agents.md) · [`/sitemap.xml`](https://muster.zkasuran.dev/sitemap.xml) · the free capability contract at `GET /api/agent/health-factor?preview=1`
-
----
-
-## Quick Start
-
-```bash
-# 1. Clone and install
-git clone https://github.com/zkasuran/muster.git
-cd muster
-npm install
-
-# 2. Verify — typecheck + lint + 271 tests
-npm run check        # registry parser, 402 builder, local EIP-3009
-                     # verification, classifier, SSRF guard
-
-# 3. Run
-npm run dev          # http://localhost:3000 — MUSTER_DB points at a SQLite file
-
-# 4. Index the chain
-npm run sweep        # enumerate the registry by id from the counter slot
-```
-
-**No API keys to browse.** Verification tooling, kept as evidence and runnable against the live site:
-
-```bash
-python3 tools/judge-walk.py      # a zero-knowledge judge walks every route anonymously; 0 findings
-bash    tools/public-gate.sh     # asserts the repo + every cited URL is reachable, secrets 404
-```
-
-A GitHub Actions **[canary](.github/workflows/canary.yml)** fetches every route anonymously every half hour through the judging window and goes red if one stops answering.
 
 ---
 
@@ -302,6 +272,36 @@ muster/
 ```
 
 **Start with** [`docs/AS-BUILT.md`](docs/AS-BUILT.md) (what shipped vs. what did not, line by line), then [`docs/02-THESIS.md`](docs/02-THESIS.md) (the thesis), [`docs/15-SYSTEM.md`](docs/15-SYSTEM.md) (the system design), and [`docs/14-GAPS-CRITIQUE.md`](docs/14-GAPS-CRITIQUE.md) — our own list of what this build is missing, kept public on purpose.
+
+---
+
+## Quick Start
+
+```bash
+# 1. Clone and install
+git clone https://github.com/zkasuran/muster.git
+cd muster
+npm install
+
+# 2. Verify — typecheck + lint + 271 tests
+npm run check        # registry parser, 402 builder, local EIP-3009
+                     # verification, classifier, SSRF guard
+
+# 3. Run
+npm run dev          # http://localhost:3000 — MUSTER_DB points at a SQLite file
+
+# 4. Index the chain
+npm run sweep        # enumerate the registry by id from the counter slot
+```
+
+**No API keys to browse.** Verification tooling, kept as evidence and runnable against the live site:
+
+```bash
+python3 tools/judge-walk.py      # a zero-knowledge judge walks every route anonymously; 0 findings
+bash    tools/public-gate.sh     # asserts the repo + every cited URL is reachable, secrets 404
+```
+
+A GitHub Actions **[canary](.github/workflows/canary.yml)** fetches every route anonymously every half hour through the judging window and goes red if one stops answering.
 
 ---
 
