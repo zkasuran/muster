@@ -16,8 +16,7 @@
     "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test worker/**/*.test.ts lib/**/*.test.ts",
     "check": "npm run typecheck && npm run lint && npm run test",
     "sweep": "node --experimental-strip-types worker/sweep.ts",
-    "probe": "node --experimental-strip-types worker/probe.ts",
-    "cli": "node --experimental-strip-types cli/muster.ts"
+    "probe": "node --experimental-strip-types worker/probe.ts"
   },
   "dependencies": {
     "clsx": "2.1.1",

@@ -26,6 +26,19 @@ test('a health-factor agent classifies and gets its artifacts', () => {
   assert.match(String((r.registerCall as Record<string, unknown>)['function']), /^register\(string agentURI\)/)
 })
 
+test('a non-round price converts to the exact atomic amount, not a float-rounded one', () => {
+  // 0.07 * 10**18 as a float is 70000000000000008, eight wei over. parseUnits on the string is exact.
+  const r = onboard({
+    name: 'Yield Router',
+    description: 'Finds the best yield across BSC lending markets after cost and routes into it.',
+    priceUsd1: 0.07,
+  })
+  const x402 = r.x402 as Record<string, unknown>
+  assert.equal(x402['amount'], '70000000000000000')
+  // amount and maxAmountRequired read from the same value, so they never disagree.
+  assert.equal(x402['maxAmountRequired'], '70000000000000000')
+})
+
 test('a free agent gets no x402 entry and x402Support is false', () => {
   const r = onboard({
     name: 'Grid Ladder Planner',

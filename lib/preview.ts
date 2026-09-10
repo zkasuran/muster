@@ -6,6 +6,7 @@
  */
 import { findAgent } from './agents.ts'
 import { TOKENS } from './constants.ts'
+import { formatTokenAmount } from './money.ts'
 
 /** The free contract a buyer reads before paying. Returns null for an unknown shelf. */
 export function previewContract(slug: string) {
@@ -20,7 +21,7 @@ export function previewContract(slug: string) {
       decimals: TOKENS.USD1.decimals,
       token: TOKENS.USD1.symbol,
       asset: TOKENS.USD1.address,
-      human: `${Number(BigInt(a.priceBase)) / 10 ** TOKENS.USD1.decimals} ${TOKENS.USD1.symbol}`,
+      human: `${formatTokenAmount(a.priceBase, TOKENS.USD1.decimals)} ${TOKENS.USD1.symbol}`,
       scheme: 'eip3009',
       network: 'eip155:56',
     },

@@ -8,6 +8,7 @@
  */
 import { db } from './db.ts'
 import { CHAIN } from './constants.ts'
+import { jsonStringArray } from './json.ts'
 import { EVIDENCE_ORDER, type EvidenceRung, type Shelf, type Visibility } from './types.ts'
 // [doc 03] Search grammar. The parser is pure and lives in search.ts; this file turns it into SQL.
 import { tokenAddress, type ParsedQuery, type Clause } from './search.ts'
@@ -347,7 +348,9 @@ export function shelfListings(shelf: Shelf, f: ShelfQuery | number = {}): Listin
   const q: ShelfQuery = typeof f === 'number' ? { limit: f } : f
   const { sql, args } = shelfWhere(shelf, q)
   const limit = Math.min(q.limit ?? 60, 200)
-  const offset = q.offset ?? 0
+  // Floor to a safe integer. node:sqlite throws "datatype mismatch" on a non-safe-integer numeric
+  // bind, so a caller passing Infinity or 1e21 must not reach the OFFSET placeholder.
+  const offset = Number.isSafeInteger(q.offset) ? Math.max(0, q.offset as number) : 0
   if (!q.collapse) {
     return many<ListingCard>(
       `${CARD_SELECT}
@@ -501,14 +504,7 @@ export function agentDetail(agentId: string): AgentDetail | null {
     'SELECT COUNT(*) c FROM agent WHERE duplicateClusterId IS NOT NULL AND duplicateClusterId = ?',
     a['duplicateClusterId'],
   )
-  const arr = (k: string): string[] => {
-    try {
-      const v = JSON.parse(String(a[k] ?? '[]'))
-      return Array.isArray(v) ? v.map(String) : []
-    } catch {
-      return []
-    }
-  }
+  const arr = (k: string): string[] => jsonStringArray(String(a[k] ?? '[]'))
   return {
     listingId: primary?.listingId ?? `${CHAIN_ID}:${agentId}:none`,
     agentId,

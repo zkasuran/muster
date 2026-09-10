@@ -12,6 +12,7 @@ import { withRpc } from './rpc.ts'
 import { TOKENS } from './constants.ts'
 import { transferWithAuthorizationTypedData } from './b402.ts'
 import { findAgent } from './agents.ts'
+import { amountWithSymbol } from './money.ts'
 import type { Shelf } from './types.ts'
 
 const PAY_TO = process.env.MUSTER_PAYTO ?? null
@@ -55,7 +56,7 @@ export function offerTypedData(shelf: string, from: string): TypedDataOffer {
     validAfter,
     validBefore,
     amountBase: agent.priceBase,
-    amountHuman: `${Number(BigInt(agent.priceBase)) / 10 ** TOKENS.USD1.decimals} USD1`,
+    amountHuman: amountWithSymbol(agent.priceBase, TOKENS.USD1.address),
     token: 'USD1',
     payTo: getAddress(PAY_TO),
   }
@@ -171,8 +172,8 @@ export async function verifyHire(input: {
     ok: true,
     attemptId,
     signer: getAddress(input.from),
-    amountHuman: `${Number(BigInt(agent.priceBase)) / 10 ** TOKENS.USD1.decimals} USD1`,
-    signerBalanceHuman: balance === null ? null : `${Number(balance) / 10 ** TOKENS.USD1.decimals} USD1`,
+    amountHuman: amountWithSymbol(agent.priceBase, TOKENS.USD1.address),
+    signerBalanceHuman: balance === null ? null : amountWithSymbol(balance.toString(), TOKENS.USD1.address),
     balanceCovers: balance === null ? null : balance >= BigInt(agent.priceBase),
     envelope,
     settlement: 'pending_merchant_account',

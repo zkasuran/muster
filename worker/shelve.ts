@@ -7,6 +7,7 @@
  */
 import { db, tx } from '../lib/db.ts'
 import { classify } from '../lib/classify.ts'
+import { jsonStringArray } from '../lib/json.ts'
 import { CHAIN_ID } from '../lib/registry.ts'
 import type { EvidenceRung } from '../lib/types.ts'
 
@@ -68,12 +69,12 @@ export function shelve(): { scanned: number; written: number; perShelf: Record<s
       const hits = classify({
         name: r.name,
         description: r.description,
-        skills: safeArr(r.skills),
-        serviceKinds: safeArr(r.serviceKinds),
+        skills: jsonStringArray(r.skills),
+        serviceKinds: jsonStringArray(r.serviceKinds),
       })
       if (hits.length === 0) continue
 
-      const endpoints = safeArr(r.endpoints)
+      const endpoints = jsonStringArray(r.endpoints)
       // The rung a declaration alone can reach, and no further.
       const tier: EvidenceRung = endpoints.length > 0 ? 'declared' : 'registered'
       // A row with nothing callable is indexed so search can find it, and not listed on a
@@ -97,15 +98,6 @@ export function shelve(): { scanned: number; written: number; perShelf: Record<s
     }
   })
   return { scanned: rows.length, written, perShelf }
-}
-
-function safeArr(s: string): string[] {
-  try {
-    const v = JSON.parse(s)
-    return Array.isArray(v) ? v.map(String) : []
-  } catch {
-    return []
-  }
 }
 
 if (import.meta.filename === process.argv[1]) {

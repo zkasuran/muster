@@ -17,6 +17,7 @@
  */
 import { db } from './db.ts'
 import { CHAIN } from './constants.ts'
+import { jsonStringArray } from './json.ts'
 import { CONTRACTS, type CategoryContract } from './classify.ts'
 import { EVIDENCE_ORDER, type EvidenceRung, type Shelf } from './types.ts'
 import { populationFacts, rungCounts, indexHealth, type PopulationFacts } from './queries.ts'
@@ -216,20 +217,12 @@ export function agentOne(agentId: string) {
     CHAIN_ID,
     agentId,
   )
-  const arr = (s: string): string[] => {
-    try {
-      const v = JSON.parse(s)
-      return Array.isArray(v) ? v.map(String) : []
-    } catch {
-      return []
-    }
-  }
   return {
     ...agentView(a),
-    endpoints: arr(a.endpoints),
-    skills: arr(a.skills),
-    serviceKinds: arr(a.serviceKinds),
-    trustModels: arr(a.trustModels),
+    endpoints: jsonStringArray(a.endpoints),
+    skills: jsonStringArray(a.skills),
+    serviceKinds: jsonStringArray(a.serviceKinds),
+    trustModels: jsonStringArray(a.trustModels),
     listings: listings.map((l) => ({
       listingId: l.listingId,
       category: l.category,

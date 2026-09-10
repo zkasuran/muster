@@ -13,9 +13,22 @@
  *
  * Pure and network-free, so lib/onboard.test.ts pins it and the API route adds only the live probe.
  */
+import { parseUnits } from 'viem'
 import { classify, contractFor, SHELF_TITLES } from './classify.ts'
 import { CHAIN, REGISTRY, TOKENS } from './constants.ts'
 import type { Shelf } from './types.ts'
+
+/**
+ * A whole-USD1 price to its exact base-unit integer string. Float math bakes a wrong amount into the
+ * published artifact: BigInt(Math.round(0.07 * 10**18)) is 70000000000000008, not 70000000000000000.
+ * parseUnits is exact on a plain decimal string, so route through the string form and only fall back
+ * to toFixed for the rare exponent form (a sub-micro or huge price) that parseUnits would reject.
+ */
+function usd1Atomic(price: number): string {
+  const s = String(price)
+  const decimal = s.includes('e') || s.includes('E') ? price.toFixed(TOKENS.USD1.decimals) : s
+  return parseUnits(decimal, TOKENS.USD1.decimals).toString()
+}
 
 export const AGENT_REGISTRY_CAIP = `${CHAIN.caip2}:${REGISTRY.identity}`
 
@@ -77,7 +90,7 @@ function registrationFor(input: OnboardInput, shelves: Shelf[]): Record<string, 
 
 function x402For(input: OnboardInput): Record<string, unknown> | null {
   if (input.priceUsd1 == null) return null
-  const atomic = BigInt(Math.round(input.priceUsd1 * 10 ** TOKENS.USD1.decimals)).toString()
+  const atomic = usd1Atomic(input.priceUsd1)
   // The accepts[] shape the live BSC population uses: eip3009 in USD1 on BNB Smart Chain. amount is
   // the v2 field name and maxAmountRequired the one every current Bazaar entry still carries, so both
   // are written, which is what the marketplace's own 402 does.

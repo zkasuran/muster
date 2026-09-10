@@ -27,6 +27,7 @@ import { request as httpRequest, type IncomingHttpHeaders } from 'node:http'
 import { request as httpsRequest } from 'node:https'
 import type { TLSSocket } from 'node:tls'
 import { db, tx } from '../lib/db.ts'
+import { jsonStringArray } from '../lib/json.ts'
 import { CHAIN_ID } from '../lib/registry.ts'
 import { EVIDENCE_ORDER, type EvidenceRung, type LifecycleState } from '../lib/types.ts'
 
@@ -749,7 +750,7 @@ export async function probeCycle(limit = 40): Promise<{
   const answered = new Map<string, ProbeOutcome>()
 
   for (const row of candidates) {
-    const urls = safeArr(row.endpoints)
+    const urls = jsonStringArray(row.endpoints)
     const reused = urls.map((u) => answered.get(u)).find((o): o is ProbeOutcome => o !== undefined)
     let out: ProbeOutcome
     if (reused) {
@@ -817,15 +818,6 @@ export async function probeCycle(limit = 40): Promise<{
       runId,
     )
   return { probed, passed, failed, skipped, promoted }
-}
-
-function safeArr(s: string): string[] {
-  try {
-    const v = JSON.parse(s)
-    return Array.isArray(v) ? v.map(String) : []
-  } catch {
-    return []
-  }
 }
 
 if (import.meta.filename === process.argv[1]) {

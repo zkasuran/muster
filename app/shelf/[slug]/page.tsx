@@ -41,7 +41,11 @@ const PAGE_SIZES = [10, 20, 50] as const
 function parse(sp: SP): ShelfQuery & { view: 'cards' | 'table'; page: number; perPage: number } {
   const rung = first(sp['rung']) as EvidenceRung
   const sort = first(sp['sort'])
-  const page = Math.max(1, Number(first(sp['page']) || 1) || 1)
+  // Clamp to a safe integer. A crafted ?page=1e999 parses to Infinity, and an Infinity or 1e21
+  // OFFSET binds into node:sqlite as a non-safe number and throws "datatype mismatch", so a fuzzed
+  // pagination value would 500 the whole shelf. Floor to an integer and cap it well below any real page.
+  const pageRaw = Math.floor(Number(first(sp['page']) || 1))
+  const page = Number.isFinite(pageRaw) ? Math.min(Math.max(1, pageRaw), 1_000_000) : 1
   const perPageRaw = Number(first(sp['per']) || 10)
   const perPage = (PAGE_SIZES as readonly number[]).includes(perPageRaw) ? perPageRaw : 10
   // Duplicates collapse by default. `all=1` opens every near-identical listing from one operator.
