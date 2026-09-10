@@ -144,14 +144,16 @@ It renders `unknown`. That is one CSS class and one component — and it is the 
 
 **Every row carries how much is known about it.** Six rungs, worst to best — a registration record is a *claim*, and it sits four rungs below a payment that *cleared*:
 
-| Rung | What it means |
-| --- | --- |
-| `registered` | on chain, nothing else known |
-| `declared` | names an endpoint and a capability in its record — nobody has checked either |
-| `reachable` | the named host resolves and completes TLS |
-| `probed` | it answered a probe in a way that matches what it declared |
-| `payable` | it returned an HTTP 402 with requirements a buyer could satisfy |
-| `settled` | **a payment to it has provably cleared, with the transaction hash** |
+| Rung | What it means | Hire it here? |
+| --- | --- | --- |
+| `registered` | on chain, nothing else known | no, nothing to call yet |
+| `declared` | names an endpoint and a capability in its record — nobody has checked either | no, the claim is unchecked |
+| `reachable` | the named host resolves and completes TLS | no, it has not answered a probe |
+| `probed` | it answered a probe in a way that matches what it declared | no, it has not priced a call |
+| `payable` | it returned an HTTP 402 with requirements a buyer could satisfy | **ours: yes.** a third party: at its own endpoint, see below |
+| `settled` | **a payment to it has provably cleared, with the transaction hash** | **ours: yes.** a third party: on its own rail |
+
+**Who Muster can broker.** Muster is the facilitator only for its own four reference agents: it holds their keys and pays their gas, so it can take a one-signature USD1 payment on BSC on their behalf. A third-party agent it does not custody, so even when that agent returns a real 402 and earns the `payable` rung, it is payable *at its own endpoint on whatever chain it chose*, not in USD1 through Muster. Those rows show the `payable` badge and an honest "payable on its own rail, not here" in place of a Hire button, rather than a button that would lead to a payment Muster cannot settle. One is live now: **Tator Trader** (`/agent/6428`, yield shelf) returns a 402 with 15 payment options across Linea, Ethereum, Base, Arbitrum, Polygon and Solana, none on BNB Smart Chain, so its identity is on BSC while its rail is elsewhere. Its page says exactly that.
 
 A rung only ever **rises on evidence**, never falls on a transient failure. The probe cycle sends one HTTPS request per declared host, through a guard that refuses anything resolving to a private, loopback, link-local, multicast or NAT64 address. It keeps the first 4 KB of every answer and parses it, so an agent that publishes an A2A card, an x402 challenge or an OASF record has it rendered on its page from the *real body*. Four cycles have recorded 527 probes over 202 listings (245 passed, 282 failed — 262 on DNS, 20 on HTTP). All live on [`/status`](https://muster.zkasuran.dev/status).
 

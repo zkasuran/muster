@@ -20,6 +20,20 @@ function isHireable(l: ListingCard): boolean {
 }
 
 /**
+ * For a third-party row that has proven a 402 but that Muster does not broker, a short honest note
+ * saying why there is no Hire button, so a `payable` badge never reads as a button that failed to
+ * render. Muster brokers only its own agents (it holds their keys and pays their gas), so a
+ * third-party agent is payable at its own endpoint, on whatever rail it chose, not in USD1 here.
+ * Returns null for our own rows and for rows below payable, which just open their details.
+ */
+function notBrokeredNote(l: ListingCard): string | null {
+  if (l.firstParty === 1) return null
+  if (l.evidenceTier === 'settled') return 'settled on its own rail, not here'
+  if (l.evidenceTier === 'payable') return 'payable on its own rail, not here'
+  return null
+}
+
+/**
  * One row on a shelf, framed for a buyer. What the agent does leads, then the one action that fits
  * its state: hire it if it is ours and payable, otherwise open its details. The probe, rail and
  * endpoint facts a judge wants are kept, moved to a single muted line below, so the card sells the
@@ -75,12 +89,22 @@ export function ListingRow({ l, compareWith }: { l: ListingCard; compareWith?: s
             </Link>
           </>
         ) : (
-          <Link
-            href={`/agent/${l.agentId}`}
-            className="rounded-md border border-line px-3 py-1.5 text-ink-soft hover:border-brand hover:text-brand"
-          >
-            See details
-          </Link>
+          <>
+            <Link
+              href={`/agent/${l.agentId}`}
+              className="rounded-md border border-line px-3 py-1.5 text-ink-soft hover:border-brand hover:text-brand"
+            >
+              See details
+            </Link>
+            {notBrokeredNote(l) && (
+              <span
+                className="text-xs text-ink-faint"
+                title="Muster holds its own agents' keys and pays their gas, so it brokers only those. This agent is payable directly at its own endpoint."
+              >
+                {notBrokeredNote(l)}
+              </span>
+            )}
+          </>
         )}
         {compareWith && compareWith !== l.agentId && (
           <Link
@@ -113,7 +137,7 @@ export function ListingRow({ l, compareWith }: { l: ListingCard; compareWith?: s
             : 'never probed'}
         </span>
         {l.inBazaar === 1 && <span className="text-brand">in B402 Bazaar</span>}
-        {l.declaresX402 === 1 && !isHireable(l) && <span>claims x402, unverified</span>}
+        {l.declaresX402 === 1 && l.evidenceTier !== 'payable' && l.evidenceTier !== 'settled' && <span>claims x402, unverified</span>}
       </div>
     </li>
   )
@@ -136,7 +160,7 @@ export function ListingTr({ l, compareWith }: { l: ListingCard; compareWith?: st
           {l.dupeCount > 1 && <span className="ml-2 text-ink-dim">+{l.dupeCount - 1} like it</span>}
         </div>
       </td>
-      <td className="py-2.5 pr-3"><RungBar rung={l.evidenceTier} /><div className="mt-0.5 text-xs text-ink-dim">{l.evidenceTier}</div></td>
+      <td className="py-2.5 pr-3"><RungBar rung={l.evidenceTier} /><div className="mt-0.5 text-xs text-ink-dim">{l.evidenceTier}</div>{notBrokeredNote(l) && <div className="text-xs text-ink-faint">not here</div>}</td>
       <td className={`py-2.5 pr-3 ${price ? 'num text-ink' : 'unknown'}`}>{price ?? 'not quoted'}</td>
       <td className={`py-2.5 pr-3 text-xs ${l.priceScheme ? 'text-ink' : 'unknown'}`}>{l.priceScheme ?? 'none'}</td>
       <td className="num py-2.5 pr-3 text-ink">{l.endpointCount}</td>
