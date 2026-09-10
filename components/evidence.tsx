@@ -98,6 +98,34 @@ export function RungBar({ rung, size = 'sm' }: { rung: EvidenceRung; size?: 'sm'
 }
 
 /**
+ * A compact, round, three-color rung indicator for tight spots like the shelf sidebar. Six small
+ * dots that read at a glance: the proven rungs (payable and up) in the brand colour, the earlier
+ * cleared rungs in ink, and the rungs not yet reached in the muted line colour. Same three-tone
+ * meaning as the full RungBar, just rounded and smaller so it sits cleanly beside the label.
+ */
+export function RungDots({ rung }: { rung: EvidenceRung }) {
+  const reached = EVIDENCE_ORDER.indexOf(rung)
+  return (
+    <span
+      className="inline-flex items-center gap-1"
+      title={`${LABEL[rung]}, rung ${reached + 1} of 6`}
+      aria-label={`${LABEL[rung]}, rung ${reached + 1} of 6`}
+    >
+      {EVIDENCE_ORDER.map((r, i) => (
+        <span
+          key={r}
+          aria-hidden
+          className={cn(
+            'h-1.5 w-1.5 rounded-full',
+            i <= reached ? (i >= 4 ? 'bg-brand' : 'bg-ink-soft') : 'bg-line',
+          )}
+        />
+      ))}
+    </span>
+  )
+}
+
+/**
  * The rung indicator as one aligned unit: the six-segment bar and its "N/6 rung" badge, always in
  * the same order with the same gap. Every surface that shows a row's standing uses this rather than
  * placing the bar and the badge itself, so the pair reads identically on a card, the shelf sidebar,

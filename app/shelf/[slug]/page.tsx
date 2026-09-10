@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Nav, Footer } from '@/components/nav'
 import { ListingRow, ListingTr } from '@/components/listing-row'
-import { RungBar, EvidenceBadge } from '@/components/evidence'
+import { RungDots, EvidenceBadge } from '@/components/evidence'
 import { ScoreCell } from '@/components/score'
 import { num } from '@/components/fresh'
 import { shelfListings, shelfCount, rungCounts, offShelf, shelfByScore, type ShelfQuery, type ScoredCard } from '@/lib/queries'
@@ -184,9 +184,9 @@ export default async function ShelfPage({ params, searchParams }: { params: Prom
             <Facet title="At least this rung">
               {EVIDENCE_ORDER.map((r) => (
                 <FacetLink key={r} active={f.minRung === r} href={href(slug, sp, { rung: f.minRung === r ? null : r })}>
-                  <RungBar rung={r} />
-                  <span className="ml-2 flex-1 truncate">{r}</span>
-                  <span className="num ml-2 shrink-0 tabular-nums text-ink-faint">{rungs[r]}</span>
+                  <RungDots rung={r} />
+                  <span className="ml-2.5 flex-1 truncate text-ink">{r}</span>
+                  <span className="num ml-2 shrink-0 tabular-nums text-ink-dim">{rungs[r]}</span>
                 </FacetLink>
               ))}
             </Facet>
