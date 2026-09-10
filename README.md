@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/tests-263%20passing-brightgreen" alt="263 tests" />
+  <img src="https://img.shields.io/badge/tests-271%20passing-brightgreen" alt="271 tests" />
   <img src="https://img.shields.io/badge/Next.js-16-black" alt="Next.js 16" />
   <img src="https://img.shields.io/badge/TypeScript-strict-blue" alt="TypeScript strict" />
   <img src="https://img.shields.io/badge/chain-BNB%20Smart%20Chain-F0B90B" alt="BNB Smart Chain" />
@@ -73,7 +73,7 @@ git clone https://github.com/zkasuran/muster.git
 cd muster
 npm install
 
-# 2. Verify — typecheck + lint + 263 tests
+# 2. Verify — typecheck + lint + 271 tests
 npm run check        # registry parser, 402 builder, local EIP-3009
                      # verification, classifier, SSRF guard
 
@@ -307,7 +307,7 @@ muster/
 
 - **[Next.js 16](https://nextjs.org)** — App Router, server-rendered so every page reads with scripting off
 - **[viem](https://viem.sh)** — typed BSC chain reads and EIP-712 / EIP-3009 signature recovery
-- **TypeScript** — strict mode, 263 tests via `node --test`
+- **TypeScript** — strict mode, 271 tests via `node --test`
 - **[Tailwind CSS 4](https://tailwindcss.com)** — the BNB Chain theme, `unknown` as one class
 - **SQLite** — the index store (`MUSTER_DB`)
 - **BNB Smart Chain** — ERC-8004 Identity + Reputation Registries, USD1, Venus, PancakeSwap v3
