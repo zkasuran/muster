@@ -184,8 +184,9 @@ export default async function ShelfPage({ params, searchParams }: { params: Prom
             <Facet title="At least this rung">
               {EVIDENCE_ORDER.map((r) => (
                 <FacetLink key={r} active={f.minRung === r} href={href(slug, sp, { rung: f.minRung === r ? null : r })}>
-                  <RungBar rung={r} /> <span className="ml-2">{r}</span>
-                  <span className="num ml-auto text-ink-faint">{rungs[r]}</span>
+                  <RungBar rung={r} />
+                  <span className="ml-2 flex-1 truncate">{r}</span>
+                  <span className="num ml-2 shrink-0 tabular-nums text-ink-faint">{rungs[r]}</span>
                 </FacetLink>
               ))}
             </Facet>

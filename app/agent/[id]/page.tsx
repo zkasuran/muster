@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { Nav, Footer } from '@/components/nav'
-import { EvidenceBadge, EvidenceLadder, RungBar } from '@/components/evidence'
+import { EvidenceLadder, RungMeter } from '@/components/evidence'
 import { ScoreReadout, FeedbackBand } from '@/components/score'
 import { ago, num } from '@/components/fresh'
 import { agentDetail, probeHistory, firstPartyOnShelf, feedbackFor } from '@/lib/queries'
@@ -72,8 +72,7 @@ export default async function AgentPage({ params }: { params: Promise<{ id: stri
             </p>
           </div>
           <div className="mt-2 flex flex-col items-end gap-2">
-            <EvidenceBadge rung={a.evidenceTier} />
-            <RungBar rung={a.evidenceTier} size="md" />
+            <RungMeter rung={a.evidenceTier} size="md" />
           </div>
         </div>
 

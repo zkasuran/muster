@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { EvidenceBadge, RungBar } from './evidence'
+import { RungBar, RungMeter } from './evidence'
 import { ago } from './fresh'
 import type { ListingCard } from '@/lib/queries'
 import { TOKENS } from '@/lib/constants'
@@ -71,7 +71,9 @@ export function ListingRow({ l, compareWith }: { l: ListingCard; compareWith?: s
       )}
 
       {/* The action, sized to the row's real state. A payable agent of ours can be hired; anything
-          else opens where a buyer can read how far up the ladder it has climbed and decide. */}
+          else opens where a buyer can read how far up the ladder it has climbed and decide. The
+          action row and the rung meter are pinned to the bottom of the card so they line up across
+          every card in a row regardless of how long the description runs. */}
       <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
         {hireable ? (
           <>
@@ -114,10 +116,12 @@ export function ListingRow({ l, compareWith }: { l: ListingCard; compareWith?: s
             compare with ours
           </Link>
         )}
-        <span className="ml-auto flex items-center gap-1.5" title={`evidence rung: ${l.evidenceTier}`}>
-          <RungBar rung={l.evidenceTier} />
-          <EvidenceBadge rung={l.evidenceTier} />
-        </span>
+      </div>
+
+      {/* The rung meter on its own line, right-aligned, so the bar and its "N/6 rung" badge sit at
+          the same height on every card whether the action row above wrapped or not. */}
+      <div className="mt-3 flex items-center justify-end" title={`evidence rung: ${l.evidenceTier}`}>
+        <RungMeter rung={l.evidenceTier} />
       </div>
 
       {/* The evidence, muted. Everything a judge checks is still here: the rail, the endpoint count,

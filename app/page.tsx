@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Nav, Footer } from '@/components/nav'
 import { num } from '@/components/fresh'
-import { EvidenceBadge, RungBar } from '@/components/evidence'
+import { RungMeter } from '@/components/evidence'
 import { indexHealth, shelfSummaries, topHireablePerShelf, rankedAcrossShelves } from '@/lib/queries'
 import { SHELF_TITLES } from '@/lib/classify'
 import { findAgent } from '@/lib/agents'
@@ -117,8 +117,7 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-2">
-                  <EvidenceBadge rung={featuredCard.evidenceTier} />
-                  <RungBar rung={featuredCard.evidenceTier} />
+                  <RungMeter rung={featuredCard.evidenceTier} />
                   <span className="text-xs text-ink-faint">{SHELF_TITLES[featured.slug]}</span>
                 </div>
               </div>
@@ -222,9 +221,8 @@ export default function Home() {
                     </div>
                     <span className="num shrink-0 text-xs text-ink-faint">#{i + 1}</span>
                   </div>
-                  <div className="mt-3 flex items-center justify-between">
-                    <RungBar rung={r.evidenceTier} />
-                    <EvidenceBadge rung={r.evidenceTier} />
+                  <div className="mt-3 flex items-center justify-end">
+                    <RungMeter rung={r.evidenceTier} />
                   </div>
                 </li>
               ))}

@@ -96,3 +96,26 @@ export function RungBar({ rung, size = 'sm' }: { rung: EvidenceRung; size?: 'sm'
     </span>
   )
 }
+
+/**
+ * The rung indicator as one aligned unit: the six-segment bar and its "N/6 rung" badge, always in
+ * the same order with the same gap. Every surface that shows a row's standing uses this rather than
+ * placing the bar and the badge itself, so the pair reads identically on a card, the shelf sidebar,
+ * the compare table, the agent header and the landing rows, and lines up across siblings in a grid.
+ */
+export function RungMeter({
+  rung,
+  size = 'sm',
+  className,
+}: {
+  rung: EvidenceRung
+  size?: 'sm' | 'md'
+  className?: string
+}) {
+  return (
+    <span className={cn('inline-flex items-center gap-1.5', className)}>
+      <RungBar rung={rung} size={size} />
+      <EvidenceBadge rung={rung} />
+    </span>
+  )
+}
